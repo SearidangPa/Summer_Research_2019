@@ -8,7 +8,8 @@
 
 | Path | What it is |
 |---|---|
-| `writeup/main.pdf` | Status report: model, one-glitch theorem, numerics, open problems (source: `writeup/main.typ`) |
+| `glitchy_period_finding_report.pdf` | Status report: model, one-glitch theorem, numerics, open problems (source: `glitchy_period_finding_report.typ`) |
+| `poster_figures/` | Descriptively named figures cropped from the 2019 poster |
 | `glitchy.py` | The simulator (single file) |
 | `Summer_Symposium_Poster.pdf` | 2019 poster |
 | `Experiment_plots/` | 2019 logs of the worst-case searches |
@@ -18,7 +19,7 @@
 With [uv](https://docs.astral.sh/uv/) the dependencies (numpy, matplotlib) install automatically:
 
 ```sh
-uv run glitchy.py check                                  # reproduce every number in writeup/main.pdf
+uv run glitchy.py check                                  # reproduce every number in glitchy_period_finding_report.pdf
 uv run glitchy.py plot  --N 11000 --r 100 --k 10         # plot a random placement of 10 glitches
 uv run glitchy.py plot  --N 3000 --r 50 --blocks 6 54    # plot a given placement
 uv run glitchy.py worst --N 1500 --r 50 --k 4            # worst case over all placements
@@ -27,4 +28,4 @@ uv run glitchy.py worst --N 3000 --r 50 --k 3 --signs 1 -1 1   # mixed insertion
 
 The original 2019 scripts (`Plot.py`, `Find_Worst_Case.py`, `Test.py`) are in git history at commit `a9e171b`.
 
-To rebuild the write-up: `typst compile writeup/main.typ`.
+To rebuild the write-up: `typst compile glitchy_period_finding_report.typ`.

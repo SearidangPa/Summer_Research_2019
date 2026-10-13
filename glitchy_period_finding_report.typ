@@ -1,5 +1,5 @@
 // Quantum Glitchy Period Finding: status report and open problems.
-// Compile with:  typst compile writeup/main.typ
+// Compile with:  typst compile glitchy_period_finding_report.typ
 // Every number quoted below is reproduced by `uv run glitchy.py check` (repository root).
 
 #set document(
@@ -187,8 +187,8 @@ perturbation bounds that count changed entries are useless (research prompt, App
   grid(
     columns: 2,
     gutter: 8pt,
-    image("figures/poster_fig1_insertion.png", width: 100%),
-    image("figures/poster_fig2_deletion.png", width: 100%),
+    image("poster_figures/single_insertion.png", width: 100%),
+    image("poster_figures/single_deletion.png", width: 100%),
   ),
   caption: [Poster figures 1--2. A periodic function before and after one insertion (left pair)
     and one deletion (right pair).],
@@ -556,8 +556,8 @@ signs cannot matter.
     columns: (62%, 30%),
     gutter: 10pt,
     align: horizon,
-    image("figures/poster_fig3.png", width: 100%),
-    image("figures/poster_legend.png", width: 100%),
+    image("poster_figures/two_glitch_probability_distribution.png", width: 100%),
+    image("poster_figures/probability_distribution_legend.png", width: 100%),
   ),
   caption: [Poster figure 3: $N = 3000$, $r = 20$, $k = 2$. Each column is one good outcome $c M$.
     Blue is $P_k (c M)$. Green and yellow are $P_k (c M minus.plus 1)$, and cyan and magenta are
@@ -566,14 +566,14 @@ signs cannot matter.
 ) <fig:p3>
 
 #figure(
-  image("figures/poster_fig4.png", width: 72%),
+  image("poster_figures/ten_glitch_neighborhood_probability.png", width: 72%),
   caption: [Poster figure 4: $N = 11000$, $r = 100$, $k = 10$, one random placement. The black
     neighbourhood sum ($abs(h) <= 10$) stays above about $0.0077$, which is $0.77$ of the ideal
     $0.01$. The minima are near, but not at, $c = r\/2$. The placement was not logged.],
 ) <fig:p4>
 
 #figure(
-  image("figures/poster_fig5.png", width: 100%),
+  image("poster_figures/nondivisible_period_probability_distributions.png", width: 100%),
   caption: [Poster figure 5: $N = 11000$, $r = 107$ ($r divides.not N$) with no glitch (left), $2$
     glitches (middle) and $3$ glitches (right). Without glitches the nearest-integer good outcomes
     already carry between roughly $4\/pi^2$ and $1$ times $1\/r$. No analysis exists for this case.],

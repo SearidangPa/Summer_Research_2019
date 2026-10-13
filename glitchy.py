@@ -13,7 +13,7 @@ measurement distribution is then
     P_k(y) = |z(y)|^2 / (M N),   z(y) = sum_j e^{2 pi i y s_j / N} sum_{m in block j} e^{2 pi i m r y / N},
 
 where s_j is the cumulative shift of block j.  This is exact when r divides N (see
-writeup/main.pdf, Definition 1).  Probabilities are reported relative to the ideal
+glitchy_period_finding_report.pdf, Definition 1).  Probabilities are reported relative to the ideal
 probability 1/r of each good outcome, so "1" means "as good as with no glitch".
 
 Usage (uv installs numpy and matplotlib automatically):
@@ -22,7 +22,7 @@ Usage (uv installs numpy and matplotlib automatically):
     uv run glitchy.py plot  --N 3000 --r 50 --blocks 6 54      # given placement
     uv run glitchy.py worst --N 3000 --r 50 --k 2              # exhaustive worst case
     uv run glitchy.py worst --N 1500 --r 50 --k 4 --samples 2000
-    uv run glitchy.py check                                    # every number in writeup/main.pdf
+    uv run glitchy.py check                                    # every number in glitchy_period_finding_report.pdf
 """
 import argparse
 import itertools
@@ -170,7 +170,7 @@ def plot(N, r, blocks, signs, radius, out):
 
 
 # ---------------------------------------------------------------------------
-# Reproduce every number quoted in writeup/main.pdf
+# Reproduce every number quoted in glitchy_period_finding_report.pdf
 # ---------------------------------------------------------------------------
 def check_literal_two_glitches():
     """Check the residue identity and total-mass bounds on small literal edit cases."""
@@ -302,7 +302,7 @@ def main():
     q.add_argument("--samples", type=int, help="random placements instead of all of them")
     q.add_argument("--top", type=int, default=10)
 
-    sub.add_parser("check", help="reproduce every number in writeup/main.pdf")
+    sub.add_parser("check", help="reproduce every number in glitchy_period_finding_report.pdf")
 
     a = p.parse_args()
     if a.cmd == "check":
