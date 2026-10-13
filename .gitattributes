@@ -1,0 +1,2 @@
+# Generated reports are binary, even when their opening PDF objects are plain text.
+*.pdf binary

@@ -36,6 +36,7 @@
 #let claim2019 = pill([2019 claim, proof not on file], rgb("#7a5200"))
 #let new = pill([new in this note], rgb("#1f4e79"))
 #let proved = pill([proof below], rgb("#1f6f43"))
+#let leanchecked = pill([Lean checked], rgb("#31647a"))
 #let sketch = pill([proof sketch only], rgb("#b35900"))
 #let numerical = pill([numerical evidence only], rgb("#5b3f99"))
 #let conjecture = pill([conjecture], rgb("#a11d1d"))
@@ -104,8 +105,10 @@
   $8 \/ (8 + pi^2)$, a Parseval reformulation of the multi-glitch problem, a crude bound with
   quadratic radius, and a family of configurations showing that the conjectured constant $1\/2$
   would be asymptotically sharp. Separately, an exact residue-counting argument proves total
-  probability at least $1\/5$ at the ideal outcomes themselves after two literal glitches,
-  without resolving the stronger per-outcome conjecture. A list of open problems closes the note.
+  probability at least $1\/(2k+1)$ at the ideal outcomes themselves after any $k$ literal
+  glitches, with a stronger bound approaching $1\/(k+1)$ when $k=o(N)$. A step-by-step proof
+  and a worked example explain this total-mass guarantee; it does not resolve the stronger
+  per-outcome conjecture or establish period recovery. A list of open problems closes the note.
 ]
 
 #v(4pt)
@@ -116,6 +119,7 @@
   #claim2019 stated on the 2019 poster; no proof is in the repository.
   #new added while compiling this note.
   #proved a complete argument is given here.
+  #leanchecked the general-$k$ argument in @sec:total has accompanying checked Lean proofs.
   #sketch the argument is outlined and the details still need to be checked.
   #numerical supported by computation only.
   #conjecture open.
@@ -148,10 +152,12 @@
   discrete and continuum models (@lem:continuum, @prop:transfer). (d) A packed family whose mass at
   radius $k$ decreases towards $1\/2$, reaching $0.521$ at $k = 200$ (@sec:packed). (e) Any bound
   uniform in $c$ needs radius at least $(k+1)\/2$ (@prop:radius).
-- *Two glitches, total mass.* For two literal insertions/deletions at arbitrary positions, with
-  arbitrary inserted symbols, the total probability at the exact ideal outcomes is at least
-  $r\/(3r+2) >= 1\/5$ (@thm:two-total). This also bounds the probability within distance $2$.
-  Unlike the conjecture, it is an averaged statement, not a lower bound near each good outcome.
+- *Any number of glitches, total mass.* For $k$ literal insertions/deletions at arbitrary
+  positions, with arbitrary inserted symbols, the total probability at the exact ideal
+  outcomes is at least $r\/((k+1)r+I) >= 1\/(2k+1)$, where $I <= k$ is the number of
+  surviving inserted entries (@thm:total). A second bound is $(1-I\/N)^2\/(k+1)$.
+  Normalized Model I gives $1\/(k+1)$ (@prop:model-total). These also bound the probability
+  within distance $k$, but are averaged statements, not lower bounds near each good outcome.
 - *Not done.* No multi-glitch theorem uniform in $c$ at radius $O(k)$. No period-recovery theorem
   (@sec:recovery). No analysis of $r divides.not N$. No public follow-up paper or manuscript exists as of October 2026
   (@sec:open, item 8).
@@ -262,67 +268,211 @@ The 2019 choice is $L = k$. The quantity $S_k = sum_(y in G_k) P_k (y)$ in the r
 equals $(1\/r) sum_c S_c (k) >= S^* (k)$ when $k < M\/2$. Except for the explicitly averaged
 result below, the subsequent neighbourhood bounds are per $c$ and therefore also bound $S_k$.
 
-== Two literal glitches: a total-mass bound <sec:two-total>
+== General $k$ literal glitches: a total-mass bound <sec:total>
 
-The total probability near the _set_ of ideal outcomes is easier to bound than the probability
-near _each_ ideal outcome. The following theorem answers the former question directly in the
-literal model; no continuum limit, boundary rounding, or transfer estimate is needed.
+*Answer in brief.* After any $k$ literal glitches, the probability of landing in the _set_ of
+ideal outcomes is at least $1\/(2k+1)$. If $k$ is small compared with $N$, a second bound is
+close to $1\/(k+1)$. Both are exact finite-$N$ guarantees. They require neither the block-shift
+idealization nor a continuum limit.
 
-#theorem(name: [Two literal glitches, total mass], tags: (new, proved))[
-  Let $r divides N$, and start from the infinite periodic sequence with distinct values
-  $w_0, ..., w_(r-1)$. Perform two arbitrary single-symbol insertions or deletions, with arbitrary
-  inserted values, and restrict the resulting sequence to its first $N$ entries, obtaining
-  $f_2$. Let $I <= 2$ be the number of surviving inserted entries in this restriction. For the
-  Fourier measurement $Y$ with distribution $P_(f_2)$, put
-  $G = {c N\/r : 0 <= c < r}$ and $G_2 = {y in ZZ_N : min_(g in G) d_N (y, g) <= 2}$,
-  where $d_N$ is circular distance modulo $N$. Then, uniformly over all edit locations, signs,
-  and inserted values,
-  $ Pr[Y in G_2] >= Pr[Y in G] >= r/(3r + I) >= r/(3r + 2) >= 1/5 . $ <eq:two-total>
-  A second bound, useful for large $N$, is
-  $ Pr[Y in G] >= (N-I)^2/(3N^2) . $ <eq:two-retained>
-  In particular, two deletions give at least $1\/3$, and for $N >= 2$ every sign pattern gives
-  at least $(1 - 2\/N)^2\/3$. The assumption $r < sqrt(N)$ is not needed here.
-] <thm:two-total>
+The key is to count entries by two labels: their *output value* $w$ and their *input residue*
+$b = x mod r$. Call each pair $(w,b)$ a _box_. Averaging over all ideal Fourier outcomes turns
+interfering amplitudes into a sum of squared box counts. Glitches limit the number of occupied
+boxes, and spreading $N$ entries among only a few boxes forces that sum of squares to be large.
+
+#block(breakable: false)[
+#theorem(name: [General literal glitches, total mass], tags: (new, proved, leanchecked))[
+  Let $N, r$ be positive integers with $r divides N$, and start from the infinite periodic
+  sequence with distinct values $w_0, ..., w_(r-1)$. Perform $k >= 0$ single-symbol insertions or
+  deletions at arbitrary positions, with arbitrary inserted values. Keep the first $N$ entries
+  of the resulting sequence, obtaining $f_k$. Let $I$ be the number of surviving inserted
+  entries in this prefix, so $0 <= I <= min(k,N)$.
+
+  For the measurement distribution $P_(f_k)$, define
+  $ G := {c N\/r : 0 <= c < r}, quad
+    G_k := {y in ZZ_N : min_(g in G) d_N(y,g) <= k}, $
+  where $d_N$ is circular distance modulo $N$. Then
+  $ Pr[Y in G_k] >= Pr[Y in G] >= r/((k+1)r + I)
+    >= r/((k+1)r + k) >= 1/(2k+1). $ <eq:total>
+  Independently,
+  $ Pr[Y in G] >= (N-I)^2/((k+1)N^2)
+    = (1-I\/N)^2/(k+1). $ <eq:retained>
+  The larger of these two lower bounds may be used. There is no assumption that $k < r$,
+  $k < N$, or $r < sqrt(N)$. Overlap between neighbourhoods in $G_k$ causes no problem:
+  the proof already bounds the smaller set $G$.
+] <thm:total>
+]
+
+#figure(
+  image("report_figures/general_k_proof-1.svg", width: 70%),
+  caption: [Proof map. A box means one pair (output value, input residue modulo $r$).
+    The count argument controls the _total_ probability on $G$, not its division among the
+    individual good outcomes. Mermaid source: #text(font: "DejaVu Sans Mono", size: 8pt)[report_figures/general_k_proof.md].],
+) <fig:total-proof>
+
+#pagebreak(weak: true)
 #proof[
-  For any function $f : ZZ_N -> W$, count entries by output value and input residue:
-  $ n_(w b) := abs({ x in {0, ..., N-1} : f(x) = w, x equiv b thick (mod r) }) . $
-  Orthogonality of the $r$ roots of unity gives the exact identity
-  $ sum_(c=0)^(r-1) P_f (c N\/r)
+  *Step 1: Express the Fourier probability using box counts.*
+
+  For any function $f : ZZ_N -> W$, let
+  $ n_(w b) := abs({x in {0, ..., N-1} : f(x)=w, x equiv b thick (mod r)}). $
+  These counts are nonnegative and $sum_(w,b) n_(w b)=N$. At an ideal outcome $y=c N\/r$,
+  the phase depends on $x$ only through its residue $b$:
+  $ e^(2 pi i x y\/N) = e^(2 pi i c x\/r) = e^(2 pi i c b\/r). $
+  Thus @eq:pf becomes
+  $ P_f(c N\/r) = 1/N^2 sum_w abs(sum_(b=0)^(r-1) n_(w b) e^(2 pi i c b\/r))^2. $
+  Sum over $c$. The identity
+  $ sum_(c=0)^(r-1) e^(2 pi i c(b-b')\/r)
+    = cases(r & "if" b=b', 0 & "if" b != b') $
+  removes every cross-term between different residues. Therefore
+  $ Pr[Y in G]
     &= 1/N^2 sum_w sum_(b=0)^(r-1) sum_(b'=0)^(r-1) n_(w b) n_(w b')
-       sum_(c=0)^(r-1) e^(2 pi i c (b-b')\/r) \
-    &= r/N^2 sum_w sum_(b=0)^(r-1) n_(w b)^2 . $ <eq:residue-mass>
+       sum_(c=0)^(r-1) e^(2 pi i c(b-b')\/r) \
+    &= r/N^2 sum_w sum_(b=0)^(r-1) n_(w b)^2. $ <eq:residue-mass>
 
-  Track the original index $t$ of each retained, noninserted entry at final index $x$. Between
-  edits the displacement $s = x-t$ is constant. Each insertion or deletion changes it by one,
-  so two edits leave at most three displacement values among the retained entries. This also
-  holds for adjacent edits or an insertion subsequently deleted. If the original entry has
-  value $w_a$, then $t equiv a thick (mod r)$, hence $x equiv a+s thick (mod r)$. Thus the
-  noninserted entries occupy at most $3r$ pairs $(w,b)$. Each of the $I$ surviving inserted
-  entries can add at most one further pair, even if its value is entirely new.
+  In words: the Fourier calculation has become an ordinary counting problem. Two entries in
+  the same box always reinforce one another in this sum; different boxes do not interfere
+  after averaging over $c$.
 
-  The nonnegative counts $n_(w b)$ therefore have support of size at most $3r+I$ and sum to $N$.
-  Cauchy--Schwarz yields $sum_(w,b) n_(w b)^2 >= N^2\/(3r+I)$. Substitution in
-  @eq:residue-mass proves @eq:two-total, since $G subset.eq G_2$ and $r >= 1$.
+  *Step 2: Bound the number of occupied boxes.*
 
-  For @eq:two-retained, count only noninserted entries, obtaining counts $m_(w b) <= n_(w b)$.
-  They sum to $N-I$ and occupy at most $3r$ pairs, so
-  $sum_(w,b) n_(w b)^2 >= sum_(w,b) m_(w b)^2 >= (N-I)^2\/(3r)$.
+  Write $A$ for the number of insertion operations and $D$ for the number of deletion
+  operations, so $A+D=k$. Tag each original entry with its original index $t$. Insertions and
+  deletions preserve the order of all surviving original entries.
+
+  Consider an original entry that survives at final index $x$. Among the original $t$ entries
+  preceding it, let $d(t)$ have been deleted. Let $i(t)$ surviving inserted entries precede it
+  in the final sequence. Counting the entries before it gives
+  $ x = t-d(t)+i(t), quad s := x-t = i(t)-d(t). $
+  Since $0 <= i(t) <= A$ and $0 <= d(t) <= D$,
+  $ -D <= s <= A. $ <eq:shift-range>
+  This interval contains only $A+D+1=k+1$ integers. Hence there are at most $k+1$ possible
+  displacements, regardless of the order or locations of the edits.
+
+  An original entry of value $w_a$ has $t equiv a thick (mod r)$. Its final residue is
+  $x equiv a+s thick (mod r)$. For each of the $r$ original values, at most $k+1$ residues are
+  therefore possible. So retained original entries occupy at most $(k+1)r$ boxes.
+  Each of the $I$ surviving inserted entries can add at most one further box. In total,
+  $ q := abs({(w,b):n_(w b)>0}) <= (k+1)r+I =: Q. $ <eq:box-count>
+
+  This reasoning includes adjacent edits, several edits inside one period, an insertion
+  subsequently deleted, and inserted symbols equal to original symbols. Reusing an existing
+  box can only reduce the count. Restricting to the first $N$ entries also cannot add boxes.
+
+  *Step 3: Few boxes force a large sum of squares.*
+
+  Cauchy--Schwarz, applied just to the $q$ nonempty boxes, gives
+  $ N^2 = (sum_(w,b) n_(w b))^2 <= q sum_(w,b) n_(w b)^2
+    <= Q sum_(w,b) n_(w b)^2. $
+  Equivalently, the sum of squares is smallest when entries are spread as evenly as possible.
+  Substitute into @eq:residue-mass:
+  $ Pr[Y in G] >= r/N^2 dot N^2/Q = r/((k+1)r+I). $
+  Since $I <= k$ and $r >= 1$,
+  $ r/((k+1)r+I) = 1/(k+1+I\/r) >= 1/(2k+1). $
+  Finally, $G subset.eq G_k$, proving @eq:total. The same conclusion holds for ordinary,
+  non-wrapped distance-$k$ neighbourhoods, since they too contain $G$.
+
+  *Step 4: A second bound, ignoring inserted entries.*
+
+  Let $m_(w b)$ count only retained original entries in each box. Then
+  $0 <= m_(w b) <= n_(w b)$, their sum is $N-I$, and they occupy at most $(k+1)r$ boxes.
+  A second application of Cauchy--Schwarz yields
+  $ sum_(w,b) n_(w b)^2 >= sum_(w,b) m_(w b)^2
+    >= (N-I)^2/((k+1)r). $
+  This is also valid when $I=N$, when its right-hand side is zero.
+  Multiplying by $r\/N^2$ in @eq:residue-mass proves @eq:retained.
+]
+
+#block(breakable: false)[
+*Worked example: three mixed glitches.* Start with #raw("abcabcabc…"), insert #raw("d") just before
+original index $3$, insert #raw("e") just before original index $6$, and delete original index $9$.
+Keep $N=15$ entries. Here $r=3$, $k=3$, $A=2$, $D=1$, and $I=2$; all indices start at zero.
+@fig:residue-example tracks the surviving originals and builds the count table.
+
+#figure(
+  image("report_figures/general_k_example.svg", width: 100%),
+  caption: [A literal three-edit example, not a block-shift approximation. Inserted entries
+    have no original index. The deletion removes original index $9$ and changes the later
+    displacement from $2$ back to $1$. The table counts each final entry exactly once.],
+) <fig:residue-example>
+]
+
+The table has $sum n_(w b)=15$ and $sum n_(w b)^2=25$, so the identity gives
+$ Pr[Y in {0,5,10}] = 3/15^2 dot 25 = 1/3
+  >= 3/((3+1)3+2) = 3/14 >= 1/7. $
+The middle quantity is the theorem's box-count bound; the last is its simpler universal bound.
+Repeated displacement values do not need new boxes, so an actual configuration can do better.
+
+*Useful special cases.*
+- *No edits:* $k=I=0$, and the bound is $1$, as it should be.
+- *Deletions only (or no inserted entry survives in the prefix):* $I=0$ gives
+  $Pr[Y in G] >= 1\/(k+1)$.
+- *Few edits compared with the sample length:* if $k <= N$, then @eq:retained gives
+  $Pr[Y in G] >= (1-k\/N)^2\/(k+1)$. In particular, for $k=o(N)$ the guarantee is
+  $(1-o(1))\/(k+1)$. The condition $k <= N$ is needed for this substitution, but not for the
+  theorem itself.
+- *Two glitches:* setting $k=2$ recovers the earlier result
+  $Pr[Y in G_2] >= Pr[Y in G] >= r\/(3r+I) >= r\/(3r+2) >= 1\/5$,
+  together with $Pr[Y in G] >= (N-I)^2\/(3N^2)$.
+
+#proposition(name: [General glitches in normalized Model I], tags: (new, proved, leanchecked))[
+  For any normalized Model I configuration (in particular, any configuration with $k<r$),
+  $ Pr_"Model I" [Y in G] >= 1/(k+1). $ <eq:model-total>
+  This bound is attained at the exact set $G$ when the $k+1$ blocks have equal lengths and
+  their shifts are distinct modulo $r$.
+] <prop:model-total>
+#proof[
+  Let $ell_j=(m_j-m_(j-1))\/M$ and group together lengths with the same shift residue:
+  $ p_b := sum_(j:s_j equiv b thick (mod r)) ell_j. $
+  The $p_b$ are nonnegative, sum to $1$, and at most $k+1$ are nonzero. At $h=0$,
+  @eq:ratio and root-of-unity orthogonality give
+  $ Pr_"Model I" [Y in G]
+    = 1/r sum_(c=0)^(r-1) abs(sum_j ell_j e^(2 pi i c s_j\/r))^2
+    = sum_(b=0)^(r-1) p_b^2 >= 1/(k+1). $
+  For equality, take all insertions, $r>k$, and $M$ divisible by $k+1$, with
+  $ell_j=1\/(k+1)$. The shifts $0,1,...,k$ are distinct modulo $r$, and the $k+1$ nonzero
+  grouped lengths are all $1\/(k+1)$.
 ]
 
 #remark[
-  *Model I and the distinction from the conjecture.* For two glitches in normalized Model I
-  (in particular, $2 < r$), the same averaging at exact ideal outcomes gives an even simpler
-  bound. Write $ell_j = (m_j-m_(j-1))\/M$. Then @eq:ratio at $h=0$ implies
-  $ Pr_"Model I" [Y in G] = 1/r sum_(c=0)^(r-1) S_c (0)
-    = sum_(b=0)^(r-1) (sum_(j : s_j equiv b thick (mod r)) ell_j)^2 >= 1/3 . $
-  There are at most three nonzero grouped lengths and they sum to $1$. More generally, the same
-  argument gives $1\/(k+1)$ for $k$ glitches in normalized Model I. In the literal model,
-  replacing $3r$ by $(k+1)r$ in the proof gives $r\/((k+1)r+I)$, where $I <= k$.
-  These bounds concern the sum over _all_ $c$, including uninformative ones such as $c=0$.
-  They do not imply a lower bound for $S^* (2)$, prove @conj:half, or establish period recovery.
-  The distance convention is immaterial to @eq:two-total: the exact set $G$ is also contained
-  in the ordinary, non-wrapped distance-$2$ neighbourhood.
+  *What is proved, and what remains open.* The two probabilities below are different:
+  - *Total mass:* @thm:total guarantees probability $Omega(1\/(k+1))$ on the union of good
+    outcomes, even before adding their neighbours. Thus the weaker total-mass target in the
+    research prompt is proved for every $k$, including literal mixed-sign edits.
+  - *Per-outcome mass:* @conj:half asks for a constant lower bound on
+    $S_alpha^"cont"(k)$ for _every_ $alpha$. Our proof sums over $c$ to cancel cross-terms;
+    it does not bound the summands separately.
+
+  Even exact ideal outcomes can have very different probabilities. For example, in Model I
+  with one insertion, two equal blocks, and even $r>1$, the amplitude at $c=r\/2$ is
+  $(1\/2)-(1\/2)=0$, although the total mass on $G$ is $1\/2$. This example concerns radius
+  zero, not a failure of the radius-$k$ conjecture.
+
+  The equality example in @prop:model-total shows that no $k$-independent positive lower
+  bound is possible on the _exact_ set $G$ in Model I. It does not rule out a constant bound
+  on the larger set $G_k$. Finally, total mass includes uninformative outcomes such as $c=0$:
+  neither theorem supplies the mass near coprime $c$, so period recovery remains a separate
+  problem (@sec:recovery).
 ]
+
+*Machine-checked companion.* The proofs for this subsection are in #raw("formal/"), using
+Lean 4 and mathlib v4.19.0. The formalization starts with actual insertion/deletion operations
+on an infinite tagged sequence, proves the displacement and box-count bounds, proves character
+orthogonality, and connects the counts to the complex-exponential Fourier measurement formula.
+It does not assume the key counting or Fourier identities as hypotheses.
+
+The checked results include both bounds in @thm:total, their neighbourhood and finite-size
+corollaries, and the Model I bound and sharpness in @prop:model-total. The figure's actual edit
+history, count table, and mass $1\/3$ are also checked, not just its final fraction. There are
+no #raw("sorry") placeholders or added axioms; the axiom audit reports only Lean's standard
+logical foundations.
+
+The formal alphabet is finite, which suffices because a finite period and finitely many edits
+use only finitely many symbols. The Fourier measurement formula is taken as the definition;
+a quantum circuit implementation is not verified. This Lean coverage is specific to
+@sec:total: it does not certify the other continuum results, the transfer sketch, or the open
+per-outcome and recovery claims. See #raw("formal/README.md") for the theorem-by-theorem map and
+@app:repro for commands.
 
 == Continuum limit
 
@@ -377,7 +527,8 @@ even in $alpha$.
 The poster interprets this as "even in the worst case, the cost to the runtime would scale like
 the number of glitches". The $2k + 1$ candidates around each outcome must be tried, but only $O(1)$
 more samples are needed (@sec:recovery). The target $S_k >= c\/(k+1)$ in the research prompt is
-weaker than @conj:half and already follows from the averaged Model I bound in @sec:two-total.
+weaker than @conj:half: @sec:total proves it in normalized Model I with constant $1$ and
+in the literal model with constant $1\/2$, since $1\/(2k+1) >= (1\/2)\/(k+1)$.
 
 = A Parseval reformulation <sec:parseval>
 
@@ -682,7 +833,8 @@ certain range of the measured outcome. Made explicit, the procedure is
 *What is missing:* a lower bound on the mass near _informative_ $c$, which a bound uniform in $c$
 would supply; a careful analysis of the classical test, including inserted symbols; and the
 $r divides.not N$ case, where candidates must satisfy $abs(y'\/N - c\/r) <= 1\/(2 r^2)$.
-The averaged guarantee in @thm:two-total does not supply the informative-outcome bound.
+The general-$k$ averaged guarantees in @thm:total and @prop:model-total do not supply the
+informative-outcome bound.
 
 = Open problems <sec:open>
 
@@ -702,7 +854,7 @@ The averaged guarantee in @thm:two-total does not supply the informative-outcome
 + *Rigorous transfer.* Complete @prop:transfer with explicit constants, including several
   glitches in one period, and determine the admissible range of $k$ relative to $N$ and $r$.
 + *Period recovery.* Turn @sec:recovery into a theorem. Determine whether averaged bounds such
-  as @thm:two-total can be strengthened to control informative outcomes, and whether the
+  as @thm:total can be strengthened to control informative outcomes, and whether the
   radius–samples trade-off of @prop:radius is real.
 + *$r divides.not N$.* Extend @lem:exact to peaks at non-integer positions $c N\/r$, as in @fig:p5.
 + *Random glitches.* An average-case model, with uniformly random positions, should be much
@@ -720,8 +872,8 @@ The averaged guarantee in @thm:two-total does not supply the informative-outcome
 #set heading(numbering: "A.1", supplement: [Appendix])
 = Reproducibility <app:repro>
 
-All code is in one file, `glitchy.py`, at the repository root. It needs `numpy`, and `matplotlib`
-for plots. With #link("https://docs.astral.sh/uv/")[uv] the dependencies install automatically:
+The numerical simulator is `glitchy.py`, at the repository root. It needs `numpy`, and
+`matplotlib` for plots. Lean proofs and diagram sources are separate, as described below. With #link("https://docs.astral.sh/uv/")[uv] the dependencies install automatically:
 
 ```
 uv run glitchy.py check                                  # every number in this note
@@ -731,12 +883,42 @@ uv run glitchy.py worst --N 1500 --r 50 --k 4            # all placements
 uv run glitchy.py worst --N 3000 --r 50 --k 3 --signs 1 -1 1
 ```
 
-`check` runs in a few seconds. It prints (1) the Model I worst cases of @tab:worst, recomputed
+`check` runs a deterministic numerical test suite. It prints (1) the Model I worst cases of @tab:worst, recomputed
 from the logged placements and by full search; (2) the sign-pattern table of @sec:signs; (3) the
 one-glitch constants of @thm:one, with the closed form checked against direct summation; (4) the
 packed-family table of @sec:packed; (5) the radius example of @prop:radius; and (6) checks of the
-residue-count identity @eq:residue-mass and the bounds in @thm:two-total against direct Fourier
-measurement probabilities for literal two-edit sequences. These checks include mixed signs,
-adjacent edits, repeated or new inserted values, and truncation; the theorem's proof, not the
-finite checks, supplies the uniform guarantee. The poster figures were cropped from
-`Summer_Symposium_Poster.pdf`.
+residue-count identity @eq:residue-mass and both bounds in @thm:total against direct Fourier
+measurement probabilities. Literal tests enumerate small two- and three-edit cases and use a
+fixed seed for larger $k$, including $k >= r$, $k > N$, mixed signs, adjacent edits, repeated
+or new inserted values, and truncation. They also verify the worked example in
+@fig:residue-example and equality cases of @prop:model-total. The theorem's proof, not these
+finite checks, supplies the uniform guarantee.
+
+The poster figures were cropped from #raw("Summer_Symposium_Poster.pdf"). The explanatory
+figures in @sec:total have editable sources in #raw("report_figures/"). Rebuild them with:
+
+```sh
+mmdc -i report_figures/general_k_proof.md -o report_figures/general_k_proof.svg
+python3 report_figures/build_general_k_example.py
+typst compile glitchy_period_finding_report.typ
+```
+
+The Mermaid command emits #raw("general_k_proof-1.svg") from the single fenced diagram. The
+committed SVGs are sufficient to compile the report; Mermaid is needed only to regenerate its
+proof map.
+
+*Lean verification.* With #link("https://github.com/leanprover/elan")[elan] installed:
+
+```sh
+cd formal
+lake exe cache get       # first use: download precompiled mathlib dependencies
+lake build
+lake env lean Audit.lean
+```
+
+The toolchain and dependencies are pinned in #raw("formal/lean-toolchain"),
+#raw("formal/lakefile.toml"), and #raw("formal/lake-manifest.json"). The axiom audit covers the
+literal-edit theorem, both sharper bounds, their neighbourhood and finite-size corollaries,
+the Model I bound and sharpness, and the worked example. If macOS rejects the cache executable,
+#raw("formal/README.md") documents an interpreter-based cache-fetch command. The verification
+itself uses the same Lean kernel in either case.

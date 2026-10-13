@@ -172,8 +172,46 @@ def plot(N, r, blocks, signs, radius, out):
 # ---------------------------------------------------------------------------
 # Reproduce every number quoted in glitchy_period_finding_report.pdf
 # ---------------------------------------------------------------------------
-def check_literal_two_glitches():
-    """Check the residue identity and total-mass bounds on small literal edit cases."""
+def assert_literal_bounds(sequence, N, r, k):
+    """Check one tagged prefix against direct Fourier measurement probabilities.
+
+    Nonnegative tags are original indices. Negative tag -w-1 denotes an inserted
+    value w, even when w equals an original periodic value.
+    """
+    encoded = np.asarray(sequence)
+    assert len(encoded) == N and N % r == 0
+    original = encoded >= 0
+    inserted = int(np.count_nonzero(~original))
+    entries = np.where(original, encoded % r, -encoded - 1)
+    labels, inverse = np.unique(entries, return_inverse=True)
+    classes = inverse[None, :] == np.arange(len(labels))[:, None]
+    probability = (np.abs(np.fft.fft(classes, axis=1)) ** 2).sum(0) / N**2
+    counts = np.zeros((len(labels), r), dtype=int)
+    retained = np.zeros_like(counts)
+    residues = np.arange(N) % r
+    np.add.at(counts, (inverse, residues), 1)
+    np.add.at(retained, (inverse[original], residues[original]), 1)
+    displacements = np.arange(N)[original] - encoded[original]
+    good = good_outcomes(N, r)
+    near = np.unique((good[:, None] + np.arange(-k, k + 1)) % N)
+    exact_mass = float(probability[good].sum())
+    residue_mass = r * np.sum(counts**2) / N**2
+    support_bound = r / ((k + 1) * r + inserted)
+    retained_bound = (N - inserted) ** 2 / ((k + 1) * N**2)
+    assert 0 <= inserted <= min(k, N)
+    assert len(np.unique(displacements)) <= k + 1
+    assert np.count_nonzero(retained) <= (k + 1) * r
+    assert np.count_nonzero(counts) <= (k + 1) * r + inserted
+    assert abs(probability.sum() - 1) < 1e-12
+    assert abs(exact_mass - residue_mass) < 1e-12
+    assert exact_mass >= max(support_bound, retained_bound) - 1e-12
+    assert support_bound >= 1 / (2 * k + 1) - 1e-12
+    assert probability[near].sum() >= exact_mass - 1e-12
+    return exact_mass
+
+
+def check_literal_glitches():
+    """Exhaustive small edits, seeded general-k cases, and the worked example."""
     def one_edit(sequence, values):
         for pos in range(len(sequence) + 1):
             for value in values:
@@ -181,41 +219,80 @@ def check_literal_two_glitches():
         for pos in range(len(sequence)):
             yield sequence[:pos] + sequence[pos + 1:]
 
-    for N, r in [(1, 1), (2, 1), (2, 2), (6, 1), (6, 2), (6, 3), (18, 3), (24, 4)]:
-        # Two spare originals allow two deletions before restricting to length N.
-        # Encode inserted label w as -w-1 to track surviving insertions, even
-        # when they match an original value. Include two possible new labels.
-        original = tuple(x % r for x in range(N + 2))
-        values = range(-r - 2, 0)
-        sequences = {
-            second[:N]
-            for first in one_edit(original, values)
-            for second in one_edit(first, values)
-        }
-        good = good_outcomes(N, r)
-        near = np.unique((good[:, None] + np.arange(-2, 3)) % N)
-        lower = r / (3 * r + 2)
-        minimum = 1.0
-        for sequence in sequences:
-            encoded = np.asarray(sequence)
-            inserted = int(np.count_nonzero(encoded < 0))
-            entries = np.where(encoded < 0, -encoded - 1, encoded)
-            classes = entries[None, :] == np.arange(r + 2)[:, None]
-            probability = (np.abs(np.fft.fft(classes, axis=1)) ** 2).sum(0) / N**2
-            counts = np.zeros((r + 2, r), dtype=int)
-            np.add.at(counts, (entries, np.arange(N) % r), 1)
-            exact_mass = float(probability[good].sum())
-            residue_mass = r * np.sum(counts**2) / N**2
-            assert 0 <= inserted <= 2
-            assert np.count_nonzero(counts) <= 3 * r + inserted
-            assert abs(probability.sum() - 1) < 1e-12
-            assert abs(exact_mass - residue_mass) < 1e-12
-            assert exact_mass >= r / (3 * r + inserted) - 1e-12
-            assert exact_mass >= (N - inserted) ** 2 / (3 * N**2) - 1e-12
-            assert probability[near].sum() >= exact_mass - 1e-12
-            minimum = min(minimum, exact_mass)
-        print(f"N={N} r={r}: {len(sequences)} literal sequences checked; "
-              f"minimum exact-ideal mass {minimum:.6f}, bound {lower:.6f}")
+    cases = [(N, r, 2) for N, r in
+             [(1, 1), (2, 1), (2, 2), (6, 1), (6, 2), (6, 3), (18, 3), (24, 4)]]
+    cases += [(1, 1, 3), (4, 2, 3), (6, 3, 3)]
+    for N, r, k in cases:
+        # Spare originals make this exactly the infinite-sequence prefix model,
+        # even if every operation deletes an entry in the prefix.
+        states = {tuple(range(N + k))}
+        for step in range(k):
+            states = {
+                edited[:N] if step == k - 1 else edited
+                for state in states
+                for edited in one_edit(state, range(-r - 2, 0))
+            }
+        minimum = min(assert_literal_bounds(state, N, r, k) for state in states)
+        print(f"N={N} r={r} k={k}: {len(states)} exhaustive tagged prefixes; "
+              f"minimum exact mass {minimum:.6f}, uniform bound {1 / (2 * k + 1):.6f}")
+
+    rng = np.random.default_rng(2019)
+    checked = 0
+    for N, r in [(1, 1), (2, 2), (6, 3), (12, 4), (30, 5), (72, 8), (60, 15)]:
+        for k in [0, 1, 2, 3, 4, 8, 16, 40, 80]:
+            for trial in range(40):
+                sequence = list(range(N + k))
+                A = D = 0
+                for j in range(k):
+                    insert = (trial % 4 == 0 or
+                              (trial % 4 == 2 and j % 2 == 0) or
+                              (trial % 4 == 3 and bool(rng.integers(2))))
+                    pos = int(rng.integers(len(sequence) + int(insert)))
+                    if insert:
+                        # Old values, repeated new values, and distinct new values.
+                        value = [int(rng.integers(r)), r, r + j][j % 3]
+                        sequence.insert(pos, -value - 1)
+                        A += 1
+                    else:
+                        sequence.pop(pos)
+                        D += 1
+                prefix = sequence[:N]
+                for x, t in enumerate(prefix):
+                    if t >= 0:
+                        assert -D <= x - t <= A
+                assert sum(t < 0 for t in prefix) <= A
+                assert_literal_bounds(prefix, N, r, k)
+                checked += 1
+    # Entire prefix inserted; an insertion subsequently deleted; edits after N.
+    for sequence, N, r, k in [
+        ([-4, -4, -4], 3, 3, 3),
+        (list(range(12)), 12, 3, 2),
+        ([-1, -2, -3, -4], 4, 2, 8),
+    ]:
+        assert_literal_bounds(sequence, N, r, k)
+    print(f"{checked} seeded general-k cases checked, including k > N and k >= r.")
+
+    example = list(range(18))
+    example.insert(3, -4)  # d before original 3
+    example.insert(7, -5)  # e before original 6
+    assert example.pop(11) == 9
+    mass = assert_literal_bounds(example[:15], 15, 3, 3)
+    assert abs(mass - 1 / 3) < 1e-12
+    print("Worked example: N=15 r=3 k=3 I=2; exact mass 1/3 >= 3/14 >= 1/7.")
+
+    for k in [0, 1, 2, 3, 5, 10]:
+        r, M = k + 2, 2 * (k + 1)
+        N, blocks = r * M, list(range(2, M, 2))
+        for signs in [[1] * k, [-1] * k, [(-1) ** j for j in range(k)]]:
+            lengths = np.diff([0, *blocks, M]) / M
+            grouped = np.bincount(shifts(signs) % r, weights=lengths, minlength=r)
+            exact_mass = distribution(N, r, blocks, signs, good_outcomes(N, r)).sum()
+            assert abs(exact_mass - np.sum(grouped**2)) < 1e-12
+            assert exact_mass >= 1 / (k + 1) - 1e-12
+            assert abs(distribution(N, r, blocks, signs).sum() - 1) < 1e-12
+            if len(set(signs)) <= 1:
+                assert abs(exact_mass - 1 / (k + 1)) < 1e-12
+    print("Model I: grouped-length identity and equal-block equality cases checked.")
 
 
 def check():
@@ -272,8 +349,8 @@ def check():
         u = np.arange(1, k + 1) / (k + 1)
         print(f"k={k}: " + " ".join(f"{continuum_ratio(u, [1] * k, 0.5, L):.3f}" for L in range(k + 1)))
 
-    section("Two literal glitches: residue identity and total mass at exact ideal outcomes")
-    check_literal_two_glitches()
+    section("General literal glitches: residue identity and total mass at exact ideal outcomes")
+    check_literal_glitches()
 
 
 # ---------------------------------------------------------------------------
