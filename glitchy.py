@@ -172,6 +172,52 @@ def plot(N, r, blocks, signs, radius, out):
 # ---------------------------------------------------------------------------
 # Reproduce every number quoted in writeup/main.pdf
 # ---------------------------------------------------------------------------
+def check_literal_two_glitches():
+    """Check the residue identity and total-mass bounds on small literal edit cases."""
+    def one_edit(sequence, values):
+        for pos in range(len(sequence) + 1):
+            for value in values:
+                yield sequence[:pos] + (value,) + sequence[pos:]
+        for pos in range(len(sequence)):
+            yield sequence[:pos] + sequence[pos + 1:]
+
+    for N, r in [(1, 1), (2, 1), (2, 2), (6, 1), (6, 2), (6, 3), (18, 3), (24, 4)]:
+        # Two spare originals allow two deletions before restricting to length N.
+        # Encode inserted label w as -w-1 to track surviving insertions, even
+        # when they match an original value. Include two possible new labels.
+        original = tuple(x % r for x in range(N + 2))
+        values = range(-r - 2, 0)
+        sequences = {
+            second[:N]
+            for first in one_edit(original, values)
+            for second in one_edit(first, values)
+        }
+        good = good_outcomes(N, r)
+        near = np.unique((good[:, None] + np.arange(-2, 3)) % N)
+        lower = r / (3 * r + 2)
+        minimum = 1.0
+        for sequence in sequences:
+            encoded = np.asarray(sequence)
+            inserted = int(np.count_nonzero(encoded < 0))
+            entries = np.where(encoded < 0, -encoded - 1, encoded)
+            classes = entries[None, :] == np.arange(r + 2)[:, None]
+            probability = (np.abs(np.fft.fft(classes, axis=1)) ** 2).sum(0) / N**2
+            counts = np.zeros((r + 2, r), dtype=int)
+            np.add.at(counts, (entries, np.arange(N) % r), 1)
+            exact_mass = float(probability[good].sum())
+            residue_mass = r * np.sum(counts**2) / N**2
+            assert 0 <= inserted <= 2
+            assert np.count_nonzero(counts) <= 3 * r + inserted
+            assert abs(probability.sum() - 1) < 1e-12
+            assert abs(exact_mass - residue_mass) < 1e-12
+            assert exact_mass >= r / (3 * r + inserted) - 1e-12
+            assert exact_mass >= (N - inserted) ** 2 / (3 * N**2) - 1e-12
+            assert probability[near].sum() >= exact_mass - 1e-12
+            minimum = min(minimum, exact_mass)
+        print(f"N={N} r={r}: {len(sequences)} literal sequences checked; "
+              f"minimum exact-ideal mass {minimum:.6f}, bound {lower:.6f}")
+
+
 def check():
     def section(title):
         print(f"\n== {title}")
@@ -200,7 +246,7 @@ def check():
         c = int(ratios(3000, 50, blocks, signs, len(signs)).sum(1).argmin())
         print(f"signs {signs}: {worst:.4f} at {blocks}, attained at c/r = {c / 50:.2f}")
 
-    section("Theorem 7: one glitch")
+    section("One-glitch theorem")
     D = lambda u: 2 * u * (1 - u) - 4 * np.sin(np.pi * u) ** 2 / np.pi**2
     for u, alpha in [(0.1, 0.5), (0.2, 0.3), (0.37, 0.5)]:
         closed = 1 - (1 - math.cos(2 * math.pi * alpha)) * D(u)
@@ -221,10 +267,13 @@ def check():
         best = min(vals)
         print(f"k={k:4d}: min S = {best[0]:.4f} at delta = {best[1]:.3f}")
 
-    section("Proposition 8: equally spaced glitches, k odd, alpha = 1/2: S(L) for L = 0..k")
+    section("Radius lower bound: equally spaced glitches, k odd, alpha = 1/2: S(L) for L = 0..k")
     for k in [3, 5, 9]:
         u = np.arange(1, k + 1) / (k + 1)
         print(f"k={k}: " + " ".join(f"{continuum_ratio(u, [1] * k, 0.5, L):.3f}" for L in range(k + 1)))
+
+    section("Two literal glitches: residue identity and total mass at exact ideal outcomes")
+    check_literal_two_glitches()
 
 
 # ---------------------------------------------------------------------------

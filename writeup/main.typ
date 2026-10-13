@@ -103,7 +103,9 @@
   or added while compiling this note. It includes an identification of the one-glitch constant as
   $8 \/ (8 + pi^2)$, a Parseval reformulation of the multi-glitch problem, a crude bound with
   quadratic radius, and a family of configurations showing that the conjectured constant $1\/2$
-  would be asymptotically sharp. A list of open problems closes the note.
+  would be asymptotically sharp. Separately, an exact residue-counting argument proves total
+  probability at least $1\/5$ at the ideal outcomes themselves after two literal glitches,
+  without resolving the stronger per-outcome conjecture. A list of open problems closes the note.
 ]
 
 #v(4pt)
@@ -146,7 +148,11 @@
   discrete and continuum models (@lem:continuum, @prop:transfer). (d) A packed family whose mass at
   radius $k$ decreases towards $1\/2$, reaching $0.521$ at $k = 200$ (@sec:packed). (e) Any bound
   uniform in $c$ needs radius at least $(k+1)\/2$ (@prop:radius).
-- *Not done.* No multi-glitch theorem at radius $O(k)$. No period-recovery theorem
+- *Two glitches, total mass.* For two literal insertions/deletions at arbitrary positions, with
+  arbitrary inserted symbols, the total probability at the exact ideal outcomes is at least
+  $r\/(3r+2) >= 1\/5$ (@thm:two-total). This also bounds the probability within distance $2$.
+  Unlike the conjecture, it is an averaged statement, not a lower bound near each good outcome.
+- *Not done.* No multi-glitch theorem uniform in $c$ at radius $O(k)$. No period-recovery theorem
   (@sec:recovery). No analysis of $r divides.not N$. No public follow-up paper or manuscript exists as of October 2026
   (@sec:open, item 8).
 
@@ -253,8 +259,70 @@ For a radius $L >= 0$ define the _neighbourhood ratio_ and its worst case:
 $ S_c (L) := sum_(abs(h) <= L) R_c (h) = (Pr[Y "within" L "of" c M]) / (Pr_"ideal" [Y = c M]),
   quad S^* (L) := min_(0 <= c < r) S_c (L). $ <eq:nbhd>
 The 2019 choice is $L = k$. The quantity $S_k = sum_(y in G_k) P_k (y)$ in the research prompt
-equals $(1\/r) sum_c S_c (k) >= S^* (k)$ when $k < M\/2$. Every statement below is per $c$ and
-therefore also bounds $S_k$.
+equals $(1\/r) sum_c S_c (k) >= S^* (k)$ when $k < M\/2$. Except for the explicitly averaged
+result below, the subsequent neighbourhood bounds are per $c$ and therefore also bound $S_k$.
+
+== Two literal glitches: a total-mass bound <sec:two-total>
+
+The total probability near the _set_ of ideal outcomes is easier to bound than the probability
+near _each_ ideal outcome. The following theorem answers the former question directly in the
+literal model; no continuum limit, boundary rounding, or transfer estimate is needed.
+
+#theorem(name: [Two literal glitches, total mass], tags: (new, proved))[
+  Let $r divides N$, and start from the infinite periodic sequence with distinct values
+  $w_0, ..., w_(r-1)$. Perform two arbitrary single-symbol insertions or deletions, with arbitrary
+  inserted values, and restrict the resulting sequence to its first $N$ entries, obtaining
+  $f_2$. Let $I <= 2$ be the number of surviving inserted entries in this restriction. For the
+  Fourier measurement $Y$ with distribution $P_(f_2)$, put
+  $G = {c N\/r : 0 <= c < r}$ and $G_2 = {y in ZZ_N : min_(g in G) d_N (y, g) <= 2}$,
+  where $d_N$ is circular distance modulo $N$. Then, uniformly over all edit locations, signs,
+  and inserted values,
+  $ Pr[Y in G_2] >= Pr[Y in G] >= r/(3r + I) >= r/(3r + 2) >= 1/5 . $ <eq:two-total>
+  A second bound, useful for large $N$, is
+  $ Pr[Y in G] >= (N-I)^2/(3N^2) . $ <eq:two-retained>
+  In particular, two deletions give at least $1\/3$, and for $N >= 2$ every sign pattern gives
+  at least $(1 - 2\/N)^2\/3$. The assumption $r < sqrt(N)$ is not needed here.
+] <thm:two-total>
+#proof[
+  For any function $f : ZZ_N -> W$, count entries by output value and input residue:
+  $ n_(w b) := abs({ x in {0, ..., N-1} : f(x) = w, x equiv b thick (mod r) }) . $
+  Orthogonality of the $r$ roots of unity gives the exact identity
+  $ sum_(c=0)^(r-1) P_f (c N\/r)
+    &= 1/N^2 sum_w sum_(b=0)^(r-1) sum_(b'=0)^(r-1) n_(w b) n_(w b')
+       sum_(c=0)^(r-1) e^(2 pi i c (b-b')\/r) \
+    &= r/N^2 sum_w sum_(b=0)^(r-1) n_(w b)^2 . $ <eq:residue-mass>
+
+  Track the original index $t$ of each retained, noninserted entry at final index $x$. Between
+  edits the displacement $s = x-t$ is constant. Each insertion or deletion changes it by one,
+  so two edits leave at most three displacement values among the retained entries. This also
+  holds for adjacent edits or an insertion subsequently deleted. If the original entry has
+  value $w_a$, then $t equiv a thick (mod r)$, hence $x equiv a+s thick (mod r)$. Thus the
+  noninserted entries occupy at most $3r$ pairs $(w,b)$. Each of the $I$ surviving inserted
+  entries can add at most one further pair, even if its value is entirely new.
+
+  The nonnegative counts $n_(w b)$ therefore have support of size at most $3r+I$ and sum to $N$.
+  Cauchy--Schwarz yields $sum_(w,b) n_(w b)^2 >= N^2\/(3r+I)$. Substitution in
+  @eq:residue-mass proves @eq:two-total, since $G subset.eq G_2$ and $r >= 1$.
+
+  For @eq:two-retained, count only noninserted entries, obtaining counts $m_(w b) <= n_(w b)$.
+  They sum to $N-I$ and occupy at most $3r$ pairs, so
+  $sum_(w,b) n_(w b)^2 >= sum_(w,b) m_(w b)^2 >= (N-I)^2\/(3r)$.
+]
+
+#remark[
+  *Model I and the distinction from the conjecture.* For two glitches in normalized Model I
+  (in particular, $2 < r$), the same averaging at exact ideal outcomes gives an even simpler
+  bound. Write $ell_j = (m_j-m_(j-1))\/M$. Then @eq:ratio at $h=0$ implies
+  $ Pr_"Model I" [Y in G] = 1/r sum_(c=0)^(r-1) S_c (0)
+    = sum_(b=0)^(r-1) (sum_(j : s_j equiv b thick (mod r)) ell_j)^2 >= 1/3 . $
+  There are at most three nonzero grouped lengths and they sum to $1$. More generally, the same
+  argument gives $1\/(k+1)$ for $k$ glitches in normalized Model I. In the literal model,
+  replacing $3r$ by $(k+1)r$ in the proof gives $r\/((k+1)r+I)$, where $I <= k$.
+  These bounds concern the sum over _all_ $c$, including uninformative ones such as $c=0$.
+  They do not imply a lower bound for $S^* (2)$, prove @conj:half, or establish period recovery.
+  The distance convention is immaterial to @eq:two-total: the exact set $G$ is also contained
+  in the ordinary, non-wrapped distance-$2$ neighbourhood.
+]
 
 == Continuum limit
 
@@ -309,7 +377,7 @@ even in $alpha$.
 The poster interprets this as "even in the worst case, the cost to the runtime would scale like
 the number of glitches". The $2k + 1$ candidates around each outcome must be tried, but only $O(1)$
 more samples are needed (@sec:recovery). The target $S_k >= c\/(k+1)$ in the research prompt is
-weaker than @conj:half.
+weaker than @conj:half and already follows from the averaged Model I bound in @sec:two-total.
 
 = A Parseval reformulation <sec:parseval>
 
@@ -409,7 +477,7 @@ clustered jumps, is the obvious route to radius $O(k)$.
     table.hline(stroke: 0.5pt),
     [`glitchy.py plot`], [Plots, for one placement (given or random), the probability near every good outcome relative to ideal: the neighbourhood sum, the exact good outcome, and a heatmap over the offsets $abs(h) <= k$.],
     [`glitchy.py worst`], [Searches every placement of $k$ glitches, or a random sample, for any $k$ and sign pattern. Lists the placements with the smallest $min_c S_c (k)$.],
-    [`glitchy.py check`], [Reproduces every number in this note in about two seconds.],
+    [`glitchy.py check`], [Reproduces the numerical results and checks the new total-mass bounds in a few seconds.],
     [`Experiment_plots/Log_Plot{2,3,4,5}.txt`], [2019 logs: placement (`ListK`), shifts, and the 20 worst placements. The plot images were too large to commit.],
     table.hline(),
   ),
@@ -614,6 +682,7 @@ certain range of the measured outcome. Made explicit, the procedure is
 *What is missing:* a lower bound on the mass near _informative_ $c$, which a bound uniform in $c$
 would supply; a careful analysis of the classical test, including inserted symbols; and the
 $r divides.not N$ case, where candidates must satisfy $abs(y'\/N - c\/r) <= 1\/(2 r^2)$.
+The averaged guarantee in @thm:two-total does not supply the informative-outcome bound.
 
 = Open problems <sec:open>
 
@@ -632,8 +701,9 @@ $r divides.not N$ case, where candidates must satisfy $abs(y'\/N - c\/r) <= 1\/(
   $plus.minus 1$ walk instead of a geometric progression.
 + *Rigorous transfer.* Complete @prop:transfer with explicit constants, including several
   glitches in one period, and determine the admissible range of $k$ relative to $N$ and $r$.
-+ *Period recovery.* Turn @sec:recovery into a theorem. Determine whether bounds averaged over
-  $c$ suffice and whether the radius–samples trade-off of @prop:radius is real.
++ *Period recovery.* Turn @sec:recovery into a theorem. Determine whether averaged bounds such
+  as @thm:two-total can be strengthened to control informative outcomes, and whether the
+  radius–samples trade-off of @prop:radius is real.
 + *$r divides.not N$.* Extend @lem:exact to peaks at non-integer positions $c N\/r$, as in @fig:p5.
 + *Random glitches.* An average-case model, with uniformly random positions, should be much
   easier and may give better constants. It is a different theorem from the worst-case one.
@@ -661,8 +731,12 @@ uv run glitchy.py worst --N 1500 --r 50 --k 4            # all placements
 uv run glitchy.py worst --N 3000 --r 50 --k 3 --signs 1 -1 1
 ```
 
-`check` runs in about two seconds. It prints (1) the Model I worst cases of @tab:worst, recomputed
+`check` runs in a few seconds. It prints (1) the Model I worst cases of @tab:worst, recomputed
 from the logged placements and by full search; (2) the sign-pattern table of @sec:signs; (3) the
 one-glitch constants of @thm:one, with the closed form checked against direct summation; (4) the
-packed-family table of @sec:packed; and (5) the radius example of @prop:radius. The poster
-figures were cropped from `Summer_Symposium_Poster.pdf`.
+packed-family table of @sec:packed; (5) the radius example of @prop:radius; and (6) checks of the
+residue-count identity @eq:residue-mass and the bounds in @thm:two-total against direct Fourier
+measurement probabilities for literal two-edit sequences. These checks include mixed signs,
+adjacent edits, repeated or new inserted values, and truncation; the theorem's proof, not the
+finite checks, supplies the uniform guarantee. The poster figures were cropped from
+`Summer_Symposium_Poster.pdf`.
