@@ -26,22 +26,35 @@ import Glitchy.Examples
 Each Lean idea is explained in detail the first time it appears in this order and
 more briefly after that.
 
-## How to explore interactively
+## How to explore interactively (Neovim)
 
-Open the `formal` folder in VS Code with the "Lean 4" extension. Put the cursor after
-any line of a proof and the *Infoview* panel shows the current **goal**: the facts you
-have (above `⊢`) and what is left to prove (after `⊢`). Watching the goal change line by
-line is the fastest way to learn. Hover over any name to see its type and documentation;
-Ctrl/Cmd-click jumps to its definition, including Mathlib lemmas.
+Install the lean.nvim plugin (https://github.com/Julian/lean.nvim). It starts Lean's
+language server and adds an *infoview* window. On Neovim 0.12 or later:
 
-Typing symbols: `\N` ℕ, `\Z` ℤ, `\R` ℝ, `\C` ℂ, `\to` →, `\le` ≤, `\ne` ≠, `\sum` ∑,
-`\and` ∧, `\forall` ∀, `\exists` ∃, `\<` ⟨, `\>` ⟩, `\l` ←, `\sub` ⊆, `\mid` ∣.
+    vim.pack.add { "https://github.com/Julian/lean.nvim" }
+    vim.g.lean_config = { mappings = true }
+
+lean.nvim does not install Lean itself; install `elan` as described in `README.md`.
+
+The infoview opens beside any `.lean` file. Put the cursor at the end of a proof line and
+the infoview shows the current **goal**: the facts you have (above `⊢`) and what is left
+to prove (after `⊢`). Watching the goal change line by line is the fastest way to learn.
+
+* `K` shows the type and documentation of the name under the cursor.
+* `<C-]>` (or your go-to-definition key) jumps to its definition, including into Mathlib.
+  `<C-o>` jumps back.
+* `<LocalLeader>i` toggles the infoview, `<LocalLeader><Tab>` moves into it and back,
+  and `<LocalLeader>r` restarts Lean for the current file.
+* `<LocalLeader>\` on a symbol such as ℝ shows how to type it.
+
+Typing symbols in insert mode: `\N` ℕ, `\Z` ℤ, `\R` ℝ, `\C` ℂ, `\to` →, `\le` ≤, `\ne` ≠,
+`\sum` ∑, `\and` ∧, `\forall` ∀, `\exists` ∃, `\<` ⟨, `\>` ⟩, `\l` ←, `\sub` ⊆, `\mid` ∣.
 
 ## Comments
 
 * `-- ...` runs to the end of the line.
 * `/- ... -/` is a block comment.
-* `/-- ... -/` documents the declaration right after it (shown on hover).
+* `/-- ... -/` documents the declaration right after it (press `K` on its name to see it).
 * `/-! ... -/` documents the whole file or section.
 
 ## Declarations
