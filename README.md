@@ -95,3 +95,7 @@ The explanatory SVGs are committed. To regenerate them first:
 mmdc -i report_figures/general_k_proof.md -o report_figures/general_k_proof.svg
 python3 report_figures/build_general_k_example.py
 ```
+
+
+## relearning math and trying to make sense for the coauthor Searidang Pa
+https://claude.ai/artifact/BupCMTTy3GUBKBS33yUbdP?sk=b4j_nxwehG0yjYqYexN9mw
