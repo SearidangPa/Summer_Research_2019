@@ -40,7 +40,11 @@ def shifts(signs):
 
 
 def distribution(N, r, blocks, signs, y=None):
-    """P_k(y) for the outcomes y (default: all of 0..N-1)."""
+    """Legacy block-shift formula (exact Model I when r divides N).
+
+    For nondivisible N this uses ceil(N/r), not the actual truncated literal
+    sequence; the nondivisible proof checks use an exact literal-prefix FFT.
+    """
     M = math.ceil(N / r)
     b = [0, *blocks, M]
     s = shifts(signs)
@@ -295,6 +299,133 @@ def check_literal_glitches():
     print("Model I: grouped-length identity and equal-block equality cases checked.")
 
 
+def assert_neighbourhood_bound(sequence, N, r, k):
+    """Check the division-free Fejer proof using an actual literal prefix.
+
+    Tagged entries have the same encoding as assert_literal_bounds. These checks
+    deliberately do not use distribution(), whose nondivisible block-shift
+    formula is not the literal-prefix measurement distribution.
+    """
+    encoded = np.asarray(sequence)
+    assert len(encoded) == N and 2 <= r <= N and k >= 1
+    inserted = int(np.count_nonzero(encoded < 0))
+    assert 0 <= inserted <= min(k, N)
+    entries = np.where(encoded >= 0, encoded % r, -encoded - 1)
+    labels, inverse = np.unique(entries, return_inverse=True)
+    classes = inverse[None, :] == np.arange(len(labels))[:, None]
+    probability = (np.abs(np.fft.fft(classes, axis=1)) ** 2).sum(0) / N**2
+    good = good_outcomes(N, r)
+    near = np.unique((good[:, None] + np.arange(-k, k + 1)) % N)
+    mass = float(probability[near].sum())
+    assert abs(probability.sum() - 1) < 1e-12
+    assert mass >= 133 / 358 - 1e-12
+    assert mass >= 1 / (2 * k + 1) - 1e-12
+
+    t = 2 * N / (r * (2 * k + 1))
+    if t <= 2:
+        assert len(near) == N
+        assert abs(mass - 1) < 1e-12
+        return mass
+
+    T = 2 if t <= 6 else math.ceil(3 * t / 4)
+    ell = np.arange(1, T)
+    matching = np.array([np.mean(entries == np.roll(entries, -int(h)))
+                         for h in ell * r])
+    assert np.all(matching >= 1 - ((k + 1) * ell * r + inserted) / N - 1e-12)
+    assert np.all(matching >= 1 - (4 * ell + 1) / (3 * t) - 1e-12)
+    phase = r * np.arange(N) / N
+    moments = np.cos(2 * np.pi * np.outer(ell, phase)) @ probability
+    assert np.allclose(moments, matching, atol=1e-11, rtol=0)
+
+    # Build the kernel as a squared geometric sum, independently of its moments.
+    kernel = np.abs(np.exp(2j * np.pi * np.outer(np.arange(T), phase)).sum(0)) ** 2 / T
+    expectation = float(probability @ kernel)
+    assert abs(expectation - (1 + 2 * np.dot(1 - ell / T, matching))) < 1e-10
+    lower = 1 - 4 * (T**2 - 1) / (9 * t * T) - (T - 1) / (3 * t * T)
+    assert expectation / T >= lower - 1e-11
+    outside = np.ones(N, dtype=bool)
+    outside[near] = False
+    distance = np.abs((phase + 0.5) % 1 - 0.5)
+    assert np.all(distance[outside] >= 1 / t - 1e-12)
+
+    if t <= 6:
+        q = math.cos(np.pi / t) ** 2
+        assert t * math.sin(np.pi / t) ** 2 >= 4 / 3 - 1e-12
+        assert lower >= 1 - 5 / (6 * t) - 1e-12
+        assert (lower - q) / (1 - q) >= 3 / 8 - 1e-12
+    else:
+        q = 1 / (T**2 * math.sin(np.pi / t) ** 2)
+        assert lower >= 29 / 54 - 1e-12
+        assert q <= 64 / 243 + 1e-12
+        assert (lower - q) / (1 - q) >= 133 / 358 - 1e-12
+    assert np.all(kernel[outside] / T <= q + 1e-11)
+    assert expectation / T <= mass + (1 - mass) * q + 1e-11
+    assert mass >= (lower - q) / (1 - q) - 1e-11
+    return mass
+
+
+def check_nondividing_glitches():
+    """Exhaustive and seeded literal edits: both Fejer regimes and full coverage."""
+    def one_edit(sequence, r):
+        for pos in range(len(sequence) + 1):
+            for value in range(r + 1):  # Every old value and one new value.
+                yield sequence[:pos] + (-value - 1,) + sequence[pos:]
+        for pos in range(len(sequence)):
+            yield sequence[:pos] + sequence[pos + 1:]
+
+    for N, r, k in [(7, 2, 1), (9, 2, 1), (11, 3, 1), (31, 2, 1),
+                    (9, 2, 2), (13, 2, 2), (17, 3, 2)]:
+        states = {tuple(range(N + k))}
+        for step in range(k):
+            states = {
+                edited[:N] if step == k - 1 else edited
+                for state in states
+                for edited in one_edit(state, r)
+            }
+        minimum = min(assert_neighbourhood_bound(state, N, r, k) for state in states)
+        print(f"N={N} r={r} k={k}: {len(states)} exhaustive prefixes; "
+              f"minimum neighbourhood mass {minimum:.6f} >= {133 / 358:.6f}")
+
+    rng = np.random.default_rng(2019)
+    checked = 0
+    for N, r in [(7, 2), (12, 2), (31, 2), (37, 3), (101, 7),
+                 (211, 17), (257, 107), (1009, 17), (2003, 31)]:
+        for k in [1, 2, 3, 4, 8, 16, 40, 80]:
+            for trial in range(20):
+                sequence = list(range(N + k))
+                for j in range(k):
+                    insert = (trial % 4 == 0 or
+                              (trial % 4 == 2 and j % 2 == 0) or
+                              (trial % 4 == 3 and bool(rng.integers(2))))
+                    pos = int(rng.integers(len(sequence) + int(insert)))
+                    if insert:
+                        value = [int(rng.integers(r)), r, r + j][(j + trial) % 3]
+                        sequence.insert(pos, -value - 1)
+                    else:
+                        sequence.pop(pos)
+                assert_neighbourhood_bound(sequence[:N], N, r, k)
+                checked += 1
+    print(f"{checked} seeded cases checked: nondivisible and divisible controls, "
+          "mixed signs, half-integer peaks, old/new symbols, and overlapping windows.")
+
+    # The poster's nondivisible parameters, now with literal edits and an exact FFT.
+    N, r, k = 11000, 107, 3
+    sequence = list(range(N + k))
+    sequence.insert(3 * r + 7, -r - 1)
+    sequence.insert(6 * r + 2, -r - 2)
+    sequence.pop(9 * r + 1)
+    mass = assert_neighbourhood_bound(sequence[:N], N, r, k)
+    print(f"Literal poster-sized example: N={N} r={r} k={k}; mass {mass:.6f} >= 1/3.")
+
+    # No-edit leakage rules out blindly extending the divisible k=0 lower bound 1.
+    entries = np.arange(5) % 2
+    probability = (np.abs(np.fft.fft(entries[None, :] == np.arange(2)[:, None],
+                                    axis=1)) ** 2).sum(0) / 25
+    mass = float(probability[good_outcomes(5, 2)].sum())
+    assert mass < 1 - 1e-12
+    print(f"No edits, N=5 r=2: mass at rounded peaks {mass:.6f} < 1 (expected leakage).")
+
+
 def check():
     def section(title):
         print(f"\n== {title}")
@@ -351,6 +482,9 @@ def check():
 
     section("General literal glitches: residue identity and total mass at exact ideal outcomes")
     check_literal_glitches()
+
+    section("Nondividing periods: matching moments, Fejer kernel and constant neighbourhood mass")
+    check_nondividing_glitches()
 
 
 # ---------------------------------------------------------------------------

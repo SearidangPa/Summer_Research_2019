@@ -108,7 +108,9 @@
   probability at least $1\/(2k+1)$ at the ideal outcomes themselves after any $k$ literal
   glitches, with a stronger bound approaching $1\/(k+1)$ when $k=o(N)$. A step-by-step proof
   and a worked example explain this total-mass guarantee; it does not resolve the stronger
-  per-outcome conjecture or establish period recovery. A list of open problems closes the note.
+  per-outcome conjecture or establish period recovery. A separate Fejér-kernel argument proves
+  total probability at least $1\/3$ within distance $k$ of the rounded peaks for every $k>=1$,
+  even when $r divides.not N$. A list of open problems closes the note.
 ]
 
 #v(4pt)
@@ -119,7 +121,7 @@
   #claim2019 stated on the 2019 poster; no proof is in the repository.
   #new added while compiling this note.
   #proved a complete argument is given here.
-  #leanchecked the general-$k$ argument in @sec:total has accompanying checked Lean proofs.
+  #leanchecked the general-$k$ arguments in @sec:total and @sec:nondividing have checked Lean proofs.
   #sketch the argument is outlined and the details still need to be checked.
   #numerical supported by computation only.
   #conjecture open.
@@ -158,8 +160,11 @@
   surviving inserted entries (@thm:total). A second bound is $(1-I\/N)^2\/(k+1)$.
   Normalized Model I gives $1\/(k+1)$ (@prop:model-total). These also bound the probability
   within distance $k$, but are averaged statements, not lower bounds near each good outcome.
+- *Nondivisible periods, total mass.* For every $k>=1$, literal edits have total probability
+  at least $1\/3$ within distance $k$ of the rounded peaks, whether or not $r divides N$
+  (@thm:nondividing). This is again a union-of-windows guarantee, not a per-outcome bound.
 - *Not done.* No multi-glitch theorem uniform in $c$ at radius $O(k)$. No period-recovery theorem
-  (@sec:recovery). No analysis of $r divides.not N$. No public follow-up paper or manuscript exists as of October 2026
+  (@sec:recovery). No per-outcome analysis of $r divides.not N$. No public follow-up paper or manuscript exists as of October 2026
   (@sec:open, item 8).
 
 = Standard period finding <sec:background>
@@ -469,10 +474,123 @@ logical foundations.
 
 The formal alphabet is finite, which suffices because a finite period and finitely many edits
 use only finitely many symbols. The Fourier measurement formula is taken as the definition;
-a quantum circuit implementation is not verified. This Lean coverage is specific to
-@sec:total: it does not certify the other continuum results, the transfer sketch, or the open
+a quantum circuit implementation is not verified. Lean also covers @sec:nondividing below;
+it does not certify the other continuum results, the transfer sketch, or the open
 per-outcome and recovery claims. See #raw("formal/README.md") for the theorem-by-theorem map and
 @app:repro for commands.
+
+== Nondivisible periods: a constant neighbourhood bound <sec:nondividing>
+
+The exact box-count identity requires $r divides N$; substituting rounded peak locations into
+that identity is not valid. Nevertheless, the _total neighbourhood mass_ has a stronger bound
+that does not require divisibility. The following argument uses the actual literal edited
+prefix, not the legacy nondivisible Model I formula with $M = ceil(N\/r)$.
+
+#theorem(name: [Literal glitches without a divisibility assumption], tags: (new, proved, leanchecked))[
+  Let $2 <= r <= N$ and $k >= 1$. Start from an infinite $r$-periodic sequence, perform $k$
+  arbitrary literal insertions/deletions, and keep its first $N$ entries, obtaining $f_k$.
+  Inserted symbols are arbitrary. Let $g_c$ be any nearest integer to $c N\/r$, read modulo
+  $N$, and put
+  $ G_k := {y in ZZ_N : min_(0 <= c < r) d_N(y,g_c) <= k}. $
+  For the Fourier measurement distribution @eq:pf,
+  $ Pr[Y in G_k] >= 133/358 > 1/3 >= 1/(2k+1). $ <eq:nondividing>
+  This holds whether or not $r divides N$, for all edit placements and mixed signs.
+  There is no additional assumption on $k\/N$ or $k r\/N$, and overlapping windows are
+  counted only once. The constant $133\/358$ is not claimed to be sharp.
+] <thm:nondividing>
+
+#proof[
+  *Step 1: Relate Fourier moments to equal-value pairs.*
+
+  Write $I <= k$ for the surviving inserted entries in the prefix. For any integer $h >= 1$,
+  define the circular matching fraction
+  $ C_h := 1/N sum_(x=0)^(N-1) bb(1)[f_k(x)=f_k((x+h) mod N)]. $
+  Expanding @eq:pf and summing the $N$ roots of unity gives
+  $ sum_(y=0)^(N-1) P_(f_k)(y) cos(2 pi h y\/N) = C_h. $ <eq:matching-moment>
+
+  For $h$ a multiple of $r$ with $h<N$, a non-wrapped pair $(x,x+h)$ has equal values
+  unless its interval contains a surviving inserted entry or crosses a deleted-original gap.
+  Each inserted entry lies in at most $h+1$ such intervals, including both endpoints.
+  Each deleted-original gap is crossed by at most $h$ intervals.
+  With $D$ deletion operations, there are at most $D$ such gaps and $D+I <= k$.
+  Thus at most $k h + I$ non-wrapped pairs can fail. Discarding the $h$ wrapped pairs gives
+  $ C_h >= 1 - ((k+1)h + I)/N. $ <eq:matching-bound>
+  For $h >= N$ the right-hand side is nonpositive, so the same inequality is automatic.
+
+  *Step 2: Separate the rounded good windows from their complement.*
+
+  If $N <= (2k+1)r$, the rounded windows cover every integer outcome. Indeed, an integer
+  is within $N\/(2r)$ of some real peak and within $N\/(2r)+1\/2$ of its rounded peak.
+  When $N<(2k+1)r$ this integer distance is strictly less than $k+1$, hence at most $k$.
+  At equality the peaks themselves are integers spaced $2k+1$ apart, which also covers
+  all outcomes. Thus this case is immediate. Otherwise put
+  $ t := (2N)/(r(2k+1)) > 2, quad p := Pr[Y in G_k], quad
+    theta_y := min_(m in ZZ) abs(r y\/N - m) in [0,1/2]. $
+  If $y$ is outside $G_k$, then its integer distance from every $g_c$ is at least $k+1$.
+  Since $d_N(g_c,c N\/r) <= 1\/2$, its distance from every real peak is at least $k+1\/2$.
+  Consequently $theta_y >= 1\/t$.
+
+  For every integer $ell >= 1$, @eq:matching-bound, $r>=2$, and $I<=k$ imply
+  $ C_(ell r) >= 1 - (2(k+1)ell + k)/((2k+1)t)
+    >= 1 - (4ell+1)/(3t). $ <eq:normalised-matching>
+  The last inequality is equivalent to $(k-1)(2ell-1) >= 0$.
+
+  *Step 3: Average a nonnegative Fourier kernel.*
+
+  For an integer $T>=2$, the Fejér kernel is
+  $ F_T(theta) := 1/T abs(sum_(j=0)^(T-1) e^(2 pi i j theta))^2
+    = 1 + 2 sum_(ell=1)^(T-1) (1-ell\/T) cos(2 pi ell theta). $
+  It satisfies $0 <= F_T <= T$. From @eq:matching-moment and @eq:normalised-matching,
+  $ E_T := sum_y P_(f_k)(y) F_T(r y\/N), quad
+    E_T/T >= 1 - (4(T^2-1))/(9t T) - (T-1)/(3t T). $ <eq:fejer-expectation>
+  Here $sum_(ell=1)^(T-1) ell(1-ell\/T)=(T^2-1)\/6$ and
+  $sum_(ell=1)^(T-1)(1-ell\/T)=(T-1)\/2$.
+
+  If $F_T\/T <= q<1$ outside $G_k$, then
+  $ E_T/T <= p+(1-p)q, quad p >= (E_T\/T-q)/(1-q). $ <eq:fejer-mass>
+
+  *Step 4: Choose the kernel size, using two elementary estimates.*
+
+  If $2<t<=6$, take $T=2$. Then $F_2(theta)\/2=cos^2(pi theta)$, so we may take
+  $q=cos^2(pi\/t)$. @eq:fejer-expectation gives $E_2\/2 >= 1-5\/(6t)$, hence
+  $ p >= 1 - 5/(6t sin^2(pi\/t)) >= 3/8. $
+  To check the last step, $t sin^2(pi\/t)>=4\/3$ throughout this range:
+  for $2<t<=3$ use $sin^2(pi\/t)>=3\/4$; for $3<=t<=4$ use
+  $sin^2(pi\/t)>=1\/2$; for $4<=t<=6$, concavity of sine on $[0,pi\/4]$ gives
+  $sin(pi\/t)>=2 sqrt(2)\/t$, so $t sin^2(pi\/t)>=8\/t>=4\/3$.
+
+  If $t>=6$, take $T=ceil(3t\/4)$. Using $T<=3t\/4+1$ in @eq:fejer-expectation gives
+  $ E_T/T >= 2/3 - 7/(9t) >= 29/54. $
+  Outside $G_k$, the geometric-sum formula gives
+  $ F_T(theta_y)/T <= 1/(T^2 sin^2(pi theta_y))
+    <= 1/(T^2 sin^2(pi\/t)) <= 64/243. $
+  Indeed, concavity of sine on $[0,pi\/3]$ gives
+  $sin(pi\/t)>=(3 sqrt(3)\/2)\/t$, and $T>=3t\/4$.
+  Now @eq:fejer-mass yields
+  $ p >= (29\/54-64\/243)/(1-64\/243) = 133/358 > 1/3. $
+  Since $3\/8>133\/358$, both cases prove the stated bound.
+]
+
+#remark[
+  *Scope.* This proves the original $1\/(2k+1)$ _total-mass_ guarantee for $r divides.not N$
+  and $k>=1$, without an extra finite-size condition. It does not extend the box-count
+  identity, bound the mass at just the rounded peaks, or bound each peak separately.
+  In particular, it still does not establish period recovery or the informative-outcome
+  conjecture. The $k=0$ claim with lower bound $1$ cannot be carried over to the nearest
+  integers: an unedited nondivisible period already has Fourier leakage.
+
+  *Machine-checked companion.* #raw("formal/Glitchy/Nondividing.lean") proves this theorem
+  end to end for the same literal edit histories and complex-exponential measurement
+  formula. Matching moments, pair counts, rounded-window separation, the squared geometric
+  sum, and both analytic regimes are proved, not supplied as hypotheses. Every rounding-tie
+  choice is allowed, and overlapping windows are counted as a set. The axiom audit uses
+  only Lean's standard logical foundations, with no placeholders or added axioms.
+
+  The formal pair-count induction uses all insertion operations $A$ in place of the sharper
+  surviving-prefix count $I$; $A<=k$ gives the same normalized estimate and final constant.
+  It includes $t=2$ in the short-kernel regime. Deterministic numerical checks remain in
+  #raw("glitchy.py check"). See #raw("formal/README.md") for the declaration map.
+]
 
 == Continuum limit
 
@@ -856,7 +974,9 @@ informative-outcome bound.
 + *Period recovery.* Turn @sec:recovery into a theorem. Determine whether averaged bounds such
   as @thm:total can be strengthened to control informative outcomes, and whether the
   radius–samples trade-off of @prop:radius is real.
-+ *$r divides.not N$.* Extend @lem:exact to peaks at non-integer positions $c N\/r$, as in @fig:p5.
++ *$r divides.not N$, per outcome.* @thm:nondividing proves constant total mass on the
+  radius-$k$ union of rounded peaks. Extend the per-outcome formula @lem:exact to non-integer
+  peak positions $c N\/r$, as in @fig:p5, and control the informative outcomes.
 + *Random glitches.* An average-case model, with uniformly random positions, should be much
   easier and may give better constants. It is a different theorem from the worst-case one.
 + *Literature.* As of October 2026 the author found no public paper, preprint or manuscript on
@@ -891,8 +1011,12 @@ residue-count identity @eq:residue-mass and both bounds in @thm:total against di
 measurement probabilities. Literal tests enumerate small two- and three-edit cases and use a
 fixed seed for larger $k$, including $k >= r$, $k > N$, mixed signs, adjacent edits, repeated
 or new inserted values, and truncation. They also verify the worked example in
-@fig:residue-example and equality cases of @prop:model-total. The theorem's proof, not these
-finite checks, supplies the uniform guarantee.
+@fig:residue-example and equality cases of @prop:model-total. (7) The nondivisible-period tests
+check @eq:matching-moment, the edit-pair bound @eq:matching-bound, rounding separation, the
+Fejér-kernel expectation and both cases of @thm:nondividing against the exact literal-prefix
+Fourier distribution. They cover half-integer peaks, mixed signs, old/new inserted symbols,
+truncation and overlapping windows. The theorem's proof, not these finite checks, supplies the
+uniform guarantee.
 
 The poster figures were cropped from #raw("Summer_Symposium_Poster.pdf"). The explanatory
 figures in @sec:total have editable sources in #raw("report_figures/"). Rebuild them with:
@@ -919,6 +1043,7 @@ lake env lean Audit.lean
 The toolchain and dependencies are pinned in #raw("formal/lean-toolchain"),
 #raw("formal/lakefile.toml"), and #raw("formal/lake-manifest.json"). The axiom audit covers the
 literal-edit theorem, both sharper bounds, their neighbourhood and finite-size corollaries,
-the Model I bound and sharpness, and the worked example. If macOS rejects the cache executable,
+the Model I bound and sharpness, the worked example, and the complete nondivisible-period
+matching/Fejér argument in @thm:nondividing. If macOS rejects the cache executable,
 #raw("formal/README.md") documents an interpreter-based cache-fetch command. The verification
 itself uses the same Lean kernel in either case.

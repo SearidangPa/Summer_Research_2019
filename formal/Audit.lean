@@ -32,3 +32,24 @@ import Glitchy
 #print axioms Glitchy.retained_normalized
 #print axioms Glitchy.retained_factor_tendsto
 #print axioms Glitchy.no_uniform_exact_bound
+
+-- Section 4.2: actual edit histories through rounded-window QFT mass.
+#print axioms Glitchy.general_k_nondividing
+#print axioms Glitchy.general_k_nondividing_universal
+#print axioms Glitchy.general_k_nondividing_canonical
+#print axioms Glitchy.cyclic_matching_moment
+#print axioms Glitchy.cyclicProbability_eq_fourier
+#print axioms Glitchy.cyclicProbability_sum
+#print axioms Glitchy.Edited.goodPairs_bound
+#print axioms Glitchy.Edited.matching_bound
+#print axioms Glitchy.Edited.normalised_matching
+#print axioms Glitchy.fejerSquare_expansion
+#print axioms Glitchy.fejerSquare_geometric
+#print axioms Glitchy.fejer_expectation_lower
+#print axioms Glitchy.fejer_mass_of_matching
+#print axioms Glitchy.roundedWindows_separation
+#print axioms Glitchy.roundedWindows_full_of_lt
+#print axioms Glitchy.canonicalPeaks_nearest
+#print axioms Glitchy.nondividing_tie_regression
+#print axioms Glitchy.nondividing_mixed_regression
+#print axioms Glitchy.nondividing_long_regression

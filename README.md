@@ -9,7 +9,7 @@
 | Path | What it is |
 |---|---|
 | `glitchy_period_finding_report.pdf` | Report, including the general-k proof in §4.1 (source: `glitchy_period_finding_report.typ`) |
-| `formal/` | Lean-checked §4.1 proofs, pinned dependencies, and axiom audit; see [formal/README.md](formal/README.md) |
+| `formal/` | Lean-checked §4.1–4.2 proofs, pinned dependencies, and axiom audit; see [formal/README.md](formal/README.md) |
 | `report_figures/` | Editable Mermaid proof map and data-derived counting illustration |
 | `poster_figures/` | Descriptively named figures cropped from the 2019 poster |
 | `glitchy.py` | The simulator (single file) |
@@ -39,12 +39,26 @@ probability at the exact ideal Fourier outcomes is at least
 - independently, `(1-I/N)^2 / (k+1)`.
 
 The report includes a four-step proof, a [Mermaid proof map](report_figures/general_k_proof.md),
-and a worked three-glitch count table. These are **total-mass** guarantees, not
-the stronger per-outcome conjecture or a period-recovery theorem.
+and a worked three-glitch count table.
 
-The [Lean project](formal/README.md) checks the literal edit bookkeeping,
+### When `r` does not divide `N` (Section 4.2)
+
+For every `k >= 1` and `2 <= r <= N`, any literal edit history has total probability
+at least **`1/3 >= 1/(2k+1)`** within distance `k` of the integers nearest `cN/r`.
+There is no divisibility or extra sample-size assumption. The written Fejér-kernel
+proof actually gives `133/358` and is checked end to end in Lean. `glitchy.py check`
+checks it using exact Fourier probabilities of literal prefixes, not the legacy
+nondivisible block-shift formula.
+
+These are **total-mass** guarantees, not the stronger per-outcome conjecture or a
+period-recovery theorem. For `k=0`, nondivisible peaks already have Fourier leakage,
+so the divisible-case lower bound of `1` on exact/rounded peaks does not extend.
+
+The [Lean project](formal/README.md) checks Section 4.1's literal edit bookkeeping,
 Fourier identity, both bounds and their corollaries, Model I bound and sharpness,
-and the worked example. It does not claim to formalize the rest of the report.
+and worked example. It also checks Section 4.2's matching moments, literal pair
+counts, rounded-window geometry, Fejér-kernel estimates, and `133/358` theorem.
+It does not claim to formalize the rest of the report.
 
 ```sh
 cd formal

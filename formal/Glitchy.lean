@@ -7,8 +7,10 @@ import Glitchy.Counting
 import Glitchy.Literal
 import Glitchy.ModelI
 import Glitchy.Examples
+import Glitchy.Nondividing
+import Glitchy.NondividingExamples
 
-/-! Kernel-checkable formalization of the general-k total-mass argument in Section 4.1. -/
+/-! Kernel-checkable general-k total-mass arguments in Sections 4.1 and 4.2. -/
 
 /-!
 # Reading these files if you are new to Lean
@@ -22,6 +24,16 @@ import Glitchy.Examples
 5. `Glitchy/Literal.lean`  – joins the pieces into the main theorems
 6. `Glitchy/ModelI.lean`   – the simpler Model I
 7. `Glitchy/Examples.lean` – the worked example from the figure, checked by computation
+
+Section 4.2 continues with:
+
+8. `Glitchy/Matching.lean` – circular Fourier moments and the QFT reindexing bridge
+9. `Glitchy/PairCounting.lean` – matching pairs counted by induction on literal edits
+10. `Glitchy/Fejer.lean` – expectation inequalities and the two trigonometric regimes
+11. `Glitchy/FejerKernel.lean` – squared character sums, expansion, and concentration
+12. `Glitchy/PeakGeometry.lean` – arbitrary rounded peaks and circular window separation
+13. `Glitchy/Nondividing.lean` – the complete nondivisible theorem and corollaries
+14. `Glitchy/NondividingExamples.lean` – rounding ties, mixed edits, and boundary regressions
 
 Each Lean idea is explained in detail the first time it appears in this order and
 more briefly after that.
