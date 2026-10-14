@@ -104,4 +104,28 @@ theorem general_k_nondividing_canonical {A D τ} (hedit : Edited A D τ)
       fourierProbability (fun x : Fin N => symbol w v (τ x)) y.val :=
   general_k_nondividing hedit w v hr hk (canonicalPeaks N r) canonicalPeaks_nearest
 
+omit [NeZero N] in
+/-- When `r ∣ N` the exact ideal outcomes `c·(N/r)` are valid nearest peaks:
+they equal the real peaks `cN/r`, so the rounding error is zero. -/
+theorem exactPeaks_nearest (hrN : r ∣ N) :
+    NearestPeaks (N := N) (fun c : ZMod r => ((c.val * (N / r) : ℕ) : ℤ)) := by
+  intro c
+  have hr : (r : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne r
+  -- `Nat.cast_div` moves the exact division `N / r` from ℕ into ℝ; it needs `r ∣ N`.
+  have he : ((c.val * (N / r) : ℕ) : ℝ) = (c.val : ℝ) * N / r := by
+    rw [Nat.cast_mul, Nat.cast_div hrN hr, mul_div_assoc]
+  simp only [Int.cast_natCast, he, sub_self, abs_zero]
+  norm_num
+
+/-- The report's Eq. (nondividing) in the divisible case: when `r ∣ N`, the radius-k
+windows `G_k` around the exact ideal outcomes carry mass at least `133/358`.
+Eq. (total) gives only `1/(2k+1)` on `G_k`. On the exact set `G` no k-independent bound
+holds in Model I (`no_uniform_exact_bound`). -/
+theorem general_k_dividing_windows {A D τ} (hedit : Edited A D τ)
+    (w : ZMod r → W) (v : ℤ → W) (hr : 2 ≤ r) (hk : 1 ≤ A+D) (hrN : r ∣ N) :
+    (133 : ℝ)/358 ≤ ∑ y ∈ roundedWindows (N := N)
+        (fun c : ZMod r => ((c.val * (N / r) : ℕ) : ℤ)) (A+D),
+      fourierProbability (fun x : Fin N => symbol w v (τ x)) y.val :=
+  general_k_nondividing hedit w v hr hk _ (exactPeaks_nearest hrN)
+
 end Glitchy

@@ -26,6 +26,7 @@ uv run glitchy.py plot  --N 11000 --r 100 --k 10         # plot a random placeme
 uv run glitchy.py plot  --N 3000 --r 50 --blocks 6 54    # plot a given placement
 uv run glitchy.py worst --N 1500 --r 50 --k 4            # worst case over all placements
 uv run glitchy.py worst --N 3000 --r 50 --k 3 --signs 1 -1 1   # mixed insertions/deletions
+uv run glitchy.py recover --N 3001 --r 50 --k 3 --samples 100  # exact chance one run recovers r
 ```
 
 The original 2019 scripts (`Plot.py`, `Find_Worst_Case.py`, `Test.py`) are in git history at commit `a9e171b`.
@@ -37,6 +38,10 @@ probability at the exact ideal Fourier outcomes is at least
 
 - `r / ((k+1)r + I) >= 1/(2k+1)`, where `I <= k` inserted entries survive;
 - independently, `(1-I/N)^2 / (k+1)`.
+
+On the exact outcomes this `1/(k+1)` rate cannot be improved: evenly spaced deletions
+attain it. Within distance `k` of them, the Section 4.2 bound `133/358` below also
+holds when `r` divides `N`.
 
 The report includes a four-step proof, a [Mermaid proof map](report_figures/general_k_proof.md),
 and a worked three-glitch count table.
@@ -54,10 +59,19 @@ These are **total-mass** guarantees, not the stronger per-outcome conjecture or 
 period-recovery theorem. For `k=0`, nondivisible peaks already have Fourier leakage,
 so the divisible-case lower bound of `1` on exact/rounded peaks does not extend.
 
+### Period recovery (Section 5, numerical evidence only)
+
+`glitchy.py recover` computes the exact probability that one run returns `r`. A run
+measures `y`, tries the `2k+1` neighbours with continued fractions, and keeps the smallest
+candidate that passes a shift test. For the worst placements found with `k <= 4`, this
+probability stays at least `0.81` times its glitch-free value. That ratio is a search
+result, not a proved bound.
+
 The [Lean project](formal/README.md) checks Section 4.1's literal edit bookkeeping,
 Fourier identity, both bounds and their corollaries, Model I bound and sharpness,
 and worked example. It also checks Section 4.2's matching moments, literal pair
-counts, rounded-window geometry, Fejér-kernel estimates, and `133/358` theorem.
+counts, rounded-window geometry, Fejér-kernel estimates, and `133/358` theorem,
+including its divisible case.
 It does not claim to formalize the rest of the report.
 
 ```sh

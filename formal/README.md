@@ -86,6 +86,7 @@ All theorem names below are in the `Glitchy` namespace.
 | Squared geometric sum, triangular expansion, matching expectation, and concentration | `Glitchy/FejerKernel.lean` | `fejerSquare_expansion`, `fejerSquare_geometric`, `fejer_expectation_lower`, `fejer_mass_of_matching` |
 | Arbitrary nearest-peak choices, circular windows, coverage, and separation | `Glitchy/PeakGeometry.lean` | `canonicalPeaks_nearest`, `roundedWindows_full_of_lt`, `roundedWindows_separation` |
 | Complete constant-mass theorem and original inverse-linear guarantee, without divisibility | `Glitchy/Nondividing.lean` | `general_k_nondividing`, `general_k_nondividing_universal`, `general_k_nondividing_canonical` |
+| Divisible case: exact peaks are nearest peaks, so radius-`k` windows also carry `133/358` when `r ∣ N` | `Glitchy/Nondividing.lean` | `exactPeaks_nearest`, `general_k_dividing_windows` |
 | Rounding ties, mixed edits, deleted insertions, and analytic boundary regressions | `Glitchy/NondividingExamples.lean` | `nondividing_tie_regression`, `nondividing_mixed_regression`, `nondividing_long_regression` |
 
 ### Reading the main theorem
@@ -103,6 +104,9 @@ The support and displacement conditions are consequences of `h`, not extra
 hypotheses. `good_index_injective` prevents double-counting ideal outcomes.
 `general_k_neighbourhood` supplies the universal `1/(2k+1)` bound for any finite
 superset of the exact ideal outcomes; overlapping neighbourhoods are harmless.
+For the radius-`k` windows themselves, `general_k_dividing_windows` gives the
+stronger `133/358` (when `r >= 2` and `A+D >= 1`) by applying the nondivisible
+theorem below. No such constant holds on the exact set: see `no_uniform_exact_bound`.
 
 ### Reading the nondivisible theorem
 
@@ -124,6 +128,8 @@ and is a finite **set** of outcomes, so overlaps are not double-counted.
 There is no divisibility, sample-size, small-edit, or distinct-symbol hypothesis.
 As in the report, `r > N` is allowed; the windows then cover everything.
 `general_k_nondividing_universal` recovers the original `1/(2k+1)` bound.
+When `r ∣ N`, `exactPeaks_nearest` shows the exact outcomes `c·(N/r)` are a valid
+`g`, so `general_k_dividing_windows` is the same bound around the exact ideal outcomes.
 
 The proof follows the report step by step. `Edited.goodPairs_bound` is the
 good-pairs induction of Step 1, giving `C_h >= 1-((k+1)h+A)/N`.

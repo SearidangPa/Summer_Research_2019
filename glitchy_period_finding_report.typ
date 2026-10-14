@@ -158,11 +158,17 @@
   positions, with arbitrary inserted symbols, the total probability at the exact ideal
   outcomes is at least $r\/((k+1)r+I) >= 1\/(2k+1)$, where $I <= k$ is the number of
   surviving inserted entries (@thm:total). A second bound is $(1-I\/N)^2\/(k+1)$.
-  Normalized Model I gives $1\/(k+1)$ (@prop:model-total). These also bound the probability
-  within distance $k$, but are averaged statements, not lower bounds near each good outcome.
+  Normalized Model I gives $1\/(k+1)$ (@prop:model-total). These rates are sharp up to
+  constants on the exact set. Within distance $k$, the constant $133\/358$ of
+  @thm:nondividing also holds when $r divides N$. All of these are averaged statements, not
+  lower bounds near each good outcome.
 - *Nondivisible periods, total mass.* For every $k>=1$, literal edits have total probability
   at least $1\/3$ within distance $k$ of the rounded peaks, whether or not $r divides N$
   (@thm:nondividing). This is again a union-of-windows guarantee, not a per-outcome bound.
+- *Period recovery, numerically.* The exact success probability of the recovery procedure
+  stays at least $0.81$ times its glitch-free value for the worst placements found, with
+  $k <= 4$ and $N <= 3001$ (@tab:recovery). The true period provably passes the classical test
+  once $tau > (k r + A)\/(N - r)$.
 - *Not done.* No multi-glitch theorem uniform in $c$ at radius $O(k)$. No period-recovery theorem
   (@sec:recovery). No per-outcome analysis of $r divides.not N$. No public follow-up paper or manuscript exists as of October 2026
   (@sec:open, item 8).
@@ -305,7 +311,9 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
     = (1-I\/N)^2/(k+1). $ <eq:retained>
   The larger of these two lower bounds may be used. There is no assumption that $k < r$,
   $k < N$, or $r < sqrt(N)$. Overlap between neighbourhoods in $G_k$ causes no problem:
-  the proof already bounds the smaller set $G$.
+  the proof already bounds the smaller set $G$. If moreover $r >= 2$ and $k >= 1$, then
+  $Pr[Y in G_k] >= 133\/358$ by @thm:nondividing, whose proof does not use
+  $r divides.not N$. No $k$-independent bound holds on $G$ itself (see the remark below).
 ] <thm:total>
 ]
 
@@ -461,8 +469,12 @@ Repeated displacement values do not need new boxes, so an actual configuration c
   zero, not a failure of the radius-$k$ conjecture.
 
   The equality example in @prop:model-total shows that no $k$-independent positive lower
-  bound is possible on the _exact_ set $G$ in Model I. It does not rule out a constant bound
-  on the larger set $G_k$. Finally, total mass includes uninformative outcomes such as $c=0$:
+  bound is possible on the _exact_ set $G$ in Model I. The literal model behaves the same
+  way. Take distinct symbols, $k < r$, and $k$ deletions that split the prefix into $k+1$
+  runs of equal length $L$, a multiple of $r$. Each symbol then fills $k+1$ boxes with
+  $L\/r$ entries each, so @eq:residue-mass gives $Pr[Y in G] = 1\/(k+1)$ exactly.
+  The larger set $G_k$ does have a constant bound: $133\/358$ by @thm:nondividing, for
+  $r >= 2$ and $k >= 1$. Finally, total mass includes uninformative outcomes such as $c=0$:
   neither theorem supplies the mass near coprime $c$, so period recovery remains a separate
   problem (@sec:recovery).
 ]
@@ -474,7 +486,8 @@ orthogonality, and connects the counts to the complex-exponential Fourier measur
 It does not assume the key counting or Fourier identities as hypotheses.
 
 The checked results include both bounds in @thm:total, their neighbourhood and finite-size
-corollaries, and the Model I bound and sharpness in @prop:model-total. The figure's actual edit
+corollaries, the constant $133\/358$ on $G_k$ (#raw("general_k_dividing_windows")), and the
+Model I bound and sharpness in @prop:model-total. The figure's actual edit
 history, count table, and mass $1\/3$ are also checked, not just its final fraction. There are
 no #raw("sorry") placeholders or added axioms; the axiom audit reports only Lean's standard
 logical foundations.
@@ -950,8 +963,10 @@ certain range of the measured outcome. Made explicit, the procedure is
 *Why it should work* ($r divides N$, Model I):
 - If $y$ lands within $L$ of $c M$ with $gcd(c, r) = 1$, then $y' = c M$ is in the window and
   $y'\/N = c\/r$ exactly, so $q = r$ is a candidate.
-- For $q = r$, the test fails only when a glitch lies in $(x, x + r]$, which happens for an
-  $O(k\/M)$ fraction of $x$.
+- For $q = r$, the test fails only when a glitch lies in $(x, x + r]$. This part is proved
+  for literal edits and any $r$, divisible or not. The pair count behind @eq:matching-bound
+  shows that at most $k r + A$ of the $N - r$ pairs $(x, x + r)$ break, so $q = r$ passes
+  whenever $tau > (k r + A)\/(N - r)$.
 - For $q equiv.not 0 mod r$, passing requires a glitch in $(x, x+q]$, which happens for at most a
   $k q \/ N <= k\/sqrt(N)$ fraction of $x$. Multiples of $r$ also pass, so the smallest passing
   candidate is $r$.
@@ -961,10 +976,42 @@ certain range of the measured outcome. Made explicit, the procedure is
   "cost scales like the number of glitches".
 
 *What is missing:* a lower bound on the mass near _informative_ $c$, which a bound uniform in $c$
-would supply; a careful analysis of the classical test, including inserted symbols; and the
-$r divides.not N$ case, where candidates must satisfy $abs(y'\/N - c\/r) <= 1\/(2 r^2)$.
-The general-$k$ averaged guarantees in @thm:total and @prop:model-total do not supply the
-informative-outcome bound.
+would supply; a careful analysis of how the classical test rejects wrong candidates, including
+inserted symbols; and the $r divides.not N$ case, where candidates must satisfy
+$abs(y'\/N - c\/r) <= 1\/(2 r^2)$. The general-$k$ averaged guarantees in @thm:total,
+@prop:model-total and @thm:nondividing do not supply the informative-outcome bound.
+
+*Numerical evidence* #pill([numerical evidence only], rgb("#5b3f99")). The command
+#raw("glitchy.py recover") computes the _exact_ probability that one run outputs $r$, with
+$L = k$ and $tau = 1\/4$. It sums $P_(f_k) (y)$ over every outcome $y$ for which the procedure
+returns $r$, and it applies the shift test to all $x$ instead of a sample. Inserted symbols
+are new. @tab:recovery reports the worst placements found by a local search over positions
+and signs; for $k = 1$ the search covers every third position with both signs. These are
+search results, not proved worst cases.
+
+#figure(
+  table(
+    columns: 8,
+    stroke: none,
+    align: right,
+    table.hline(),
+    table.header[$N$][$r$][$phi(r)\/r$][no edits][$k = 1$][$k = 2$][$k = 3$][$k = 4$],
+    table.hline(stroke: 0.5pt),
+    [3000], [50], [0.400], [0.400], [0.333 (0.83)], [0.342 (0.86)], [0.326 (0.81)], [0.334 (0.84)],
+    [3001], [50], [0.400], [0.379–0.392], [0.350 (0.92)], [0.336 (0.87)], [0.338 (0.87)], [0.332 (0.85)],
+    [2500], [47], [0.979], [0.925–0.959], [0.836 (0.90)], [0.828 (0.88)], [0.811 (0.85)], [0.804 (0.84)],
+    table.hline(),
+  ),
+  caption: [Exact probability that one run of the recovery procedure outputs $r$, for the worst
+    literal edit placements found. In parentheses is the ratio to the glitch-free success at the
+    same radius $L = k$; that baseline grows with $L$ when $r divides.not N$. Placements and
+    signs are listed in #raw("glitchy.py check").],
+) <tab:recovery>
+
+Every ratio is at least $0.81$, far above the factor $1\/2$ that @conj:half would give.
+The success sums the mass over all informative $c$, so it stays well above the per-outcome
+minima of @tab:worst. The results are identical for every $tau$ in $[0.1, 0.5]$. Smaller
+$tau$ can reject $r$ itself, as the bound $(k r + A)\/(N - r)$ above predicts.
 
 = Open problems <sec:open>
 

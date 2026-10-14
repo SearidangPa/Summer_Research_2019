@@ -369,6 +369,15 @@ def check_literal_glitches():
     assert abs(mass - 1 / 3) < 1e-12
     print("Worked example: N=15 r=3 k=3 I=2; exact mass 1/3 >= 3/14 >= 1/7.")
 
+    # No k-independent bound on G in the literal model: k deletions into k+1 equal runs.
+    for k, r, L in [(1, 4, 8), (3, 8, 16), (7, 16, 32), (15, 32, 64)]:
+        N = (k + 1) * L
+        deleted = {(j + 1) * L + j for j in range(k)}
+        sequence = [t for t in range(N + k) if t not in deleted][:N]
+        mass = assert_literal_bounds(sequence, N, r, k)
+        assert abs(mass - 1 / (k + 1)) < 1e-12
+    print("Literal deletions into k+1 equal runs (lengths multiples of r): exact mass 1/(k+1).")
+
     for k in [0, 1, 2, 3, 5, 10]:
         r, M = k + 2, 2 * (k + 1)
         N, blocks = r * M, list(range(2, M, 2))
@@ -564,7 +573,11 @@ def check_recovery():
         mass, _, success = recovery(N, r, entries, k, 0.25)
         assert mass >= 133 / 358 - 1e-12
         assert success >= phi / (2 * r)
-        for tau in [0.05, 0.5]:
+        # The pair count of Section 4.2: at most k r + A of the N - r shifted pairs break,
+        # so the true period passes whenever tau exceeds that fraction.
+        A = sum(s > 0 for s in signs)
+        assert np.mean(entries[:-r] == entries[r:]) >= 1 - (k * r + A) / (N - r) - 1e-12
+        for tau in [0.1, 0.5]:
             assert abs(recovery(N, r, entries, k, tau)[2] - success) < 1e-12
         sign_text = "".join("+" if s > 0 else "-" for s in signs)
         print(f"N={N} r={r} k={k} {sign_text} at {positions}: success {success:.4f}, "

@@ -37,6 +37,7 @@ import Glitchy
 #print axioms Glitchy.general_k_nondividing
 #print axioms Glitchy.general_k_nondividing_universal
 #print axioms Glitchy.general_k_nondividing_canonical
+#print axioms Glitchy.general_k_dividing_windows
 #print axioms Glitchy.cyclic_matching_moment
 #print axioms Glitchy.cyclicProbability_eq_fourier
 #print axioms Glitchy.cyclicProbability_sum
