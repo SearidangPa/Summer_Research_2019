@@ -6,11 +6,13 @@ namespace Glitchy
 open Finset Complex
 variable {N : ℕ} [NeZero N]
 
-/-- Unnormalized squared geometric sum. The Fejér test function is this / T². -/
+/-- Unnormalized squared geometric sum `|∑_{j<T} e(j·a)|²`. With the phase `θ` of `a`, this is
+`T · F_T(θ)` for the report's Fejér kernel `F_T`, so the test function `fejerSquare T a / T²`
+is the report's `F_T/T`. -/
 noncomputable def fejerSquare (T : ℕ) (a : ZMod N) : ℝ :=
   normSq (∑ j ∈ range T, ZMod.stdAddChar ((j : ZMod N) * a))
 
-/-- Triangle inequality bounds the normalized kernel by one. -/
+/-- Triangle inequality bounds the normalized kernel by one (`F_T ≤ T` in the report). -/
 theorem fejerSquare_le (T : ℕ) (a : ZMod N) : fejerSquare T a ≤ (T : ℝ)^2 := by
   unfold fejerSquare
   rw [normSq_eq_norm_sq]
@@ -43,7 +45,8 @@ private theorem fejer_cross (T : ℕ) (a : ZMod N) :
   rw [sum_congr rfl he]
   exact sum_range_reflect (fun j : ℕ => (ZMod.stdAddChar (((j+1 : ℕ) : ZMod N)*a)).re) T
 
-/-- Exact triangular expansion of the squared geometric sum. -/
+/-- Exact triangular expansion of the squared geometric sum: the report's
+`F_T(θ) = 1 + 2 ∑_{ℓ=1}^{T-1} (1 - ℓ/T) cos(2πℓθ)`, multiplied by `T` (here `ℓ = j + 1`). -/
 theorem fejerSquare_expansion (T : ℕ) (a : ZMod N) :
     fejerSquare T a = (T : ℝ) + 2 * ∑ j ∈ range T,
       ((T : ℝ)-1-j) * (ZMod.stdAddChar (((j+1 : ℕ) : ZMod N)*a)).re := by
@@ -125,7 +128,8 @@ theorem fejerSquare_geometric (T : ℕ) (a : ZMod N) :
     nlinarith [norm_nonneg (ZMod.stdAddChar a ^ T - 1)]
   simpa only [fejerSquare, hp, hid] using hb
 
-/-- Distance of a cyclic phase to the nearest integer, in [0,1/2]. -/
+/-- Distance of a cyclic phase to the nearest integer, in [0,1/2]. For `a = r·y` this is the
+report's `θ_y = min_m |r y/N - m|` (Section 4.2, Step 2). -/
 noncomputable def phaseDistance (a : ZMod N) : ℝ :=
   min ((a.val : ℝ)/N) (1-(a.val : ℝ)/N)
 
@@ -145,8 +149,8 @@ theorem stdAddChar_re (a : ZMod N) :
     (ZMod.stdAddChar a).re = Real.cos (2 * Real.pi * ((a.val : ℝ)/N)) := by
   have he := ZMod.stdAddChar_coe (N := N) (a.val : ℤ)
   simp only [Int.cast_natCast, ZMod.natCast_zmod_val] at he
-  have hp : 2 * (Real.pi : ℂ) * I * (a.val : ℂ) / N =
-      ((2 * Real.pi * ((a.val : ℝ)/N) : ℝ) : ℂ) * I := by push_cast; ring
+  have hp : 2 * (Real.pi : ℂ) * Complex.I * (a.val : ℂ) / N =
+      ((2 * Real.pi * ((a.val : ℝ)/N) : ℝ) : ℂ) * Complex.I := by push_cast; ring
   rw [he, hp, Complex.exp_re]
   simp
 
@@ -225,7 +229,8 @@ section Expectation
 variable {W : Type*} [Fintype W] [DecidableEq W]
 
 /-- Exact expectation identity: every Fourier coefficient is an actual
-matching fraction, by the already proved correlation identity. -/
+matching fraction `C_{ℓr}`, by the already proved correlation identity.
+The left side is `T · E_T` in the report's notation. -/
 theorem fejerSquare_expectation (f : ZMod N → W) (r : ℕ) (T : ℕ) :
     (∑ y : ZMod N, cyclicProbability f y * fejerSquare T ((r : ZMod N)*y)) =
       (T : ℝ) + 2 * ∑ j ∈ range T,
@@ -246,7 +251,8 @@ theorem fejerSquare_expectation (f : ZMod N → W) (r : ℕ) (T : ℕ) :
   rw [sum_comm]
   simp_rw [← mul_sum, cyclic_matching_moment_re]
 
-/-- Matching lower bounds imply the stated finite-T expectation bound. -/
+/-- Matching lower bounds imply the report's Eq. (fejer-expectation):
+`E_T/T ≥ 1 - 4(T²-1)/(9tT) - (T-1)/(3tT)`. -/
 theorem fejer_expectation_lower (f : ZMod N → W) (r T : ℕ) (t : ℝ)
     (hT : 0 < T) (ht : 0 < t)
     (hmatch : ∀ ell : ℕ, 1 ≤ ell →
@@ -282,8 +288,9 @@ theorem fejer_expectation_lower (f : ZMod N → W) (r T : ℕ) (t : ℝ)
     ring
   rw [he]
   linarith
-/-- Analytic concentration theorem. Its two hypotheses are the normalized
-matching estimate and separation of the complement from integer phases.
+/-- Analytic concentration theorem: Steps 3 and 4 of the report's proof in Section 4.2.
+Its two hypotheses are Eq. (normalised-matching) and `θ_y ≥ 1/t` outside `G` (Step 2).
+The proof takes `T = 2` when `t ≤ 6` and `T = ⌈3t/4⌉` when `t > 6`.
 Neither a Fejér identity nor an expectation estimate is assumed. -/
 theorem fejer_mass_of_matching (f : ZMod N → W) (r : ℕ) (G : Finset (ZMod N))
     (t : ℝ) (ht : 2 ≤ t)

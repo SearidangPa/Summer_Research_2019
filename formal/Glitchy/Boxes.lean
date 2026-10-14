@@ -1,9 +1,10 @@
 import Glitchy.Edits
 import Glitchy.Counting
 
--- Counting occupied boxes. A box is a pair (symbol, position mod r), and each of the first N
--- positions lands in exactly one box. Counting.lean needs an upper bound on the number of
--- occupied boxes; this file proves it is at most (A+D+1)·r + I.
+-- Counting occupied boxes. A box is a pair (u, b) = (symbol, position mod r), and each of the
+-- first N positions lands in exactly one box. Counting.lean needs an upper bound on the number
+-- of occupied boxes; this file proves it is at most (A+D+1)·r + I, the report's Q in Eq.
+-- (box-count) (Section 4.1, Step 2).
 --
 -- Lean ideas introduced here:
 --   * `section` and `variable`: declare arguments once and reuse them in many theorems
@@ -72,66 +73,68 @@ end Fibers
 -- `[NeZero r]` assumes r ≠ 0. (Mathlib defines `ZMod 0` as ℤ itself, which is not finite.)
 variable {W : Type*} [DecidableEq W] {r : ℕ} [NeZero r]
 
--- `w : ZMod r → W` is the periodic pattern and `v : ℤ → W` gives inserted symbols.
+-- `w : ZMod r → W` is the periodic pattern (the report's w_0, ..., w_{r-1}) and `v : ℤ → W`
+-- gives inserted symbols (the report's v).
 -- `(t : ZMod r)` reduces the integer t mod r.
 /-- Tags select original periodic symbols or arbitrary inserted symbols.
 Distinctness of original symbols is not needed for this lower bound.
 An original tag `t ≥ 0` shows `w (t mod r)`, so the unedited sequence has period `r`; an
-inserted tag `t < 0` shows `v t`, which may repeat or match an original symbol. -/
+inserted tag `t < 0` shows `v t`, which may repeat or match an original symbol.
+The edited sequence is `f_k(x) = symbol w v (τ x)`, as in the report's Step 2. -/
 def symbol (w : ZMod r → W) (v : ℤ → W) (t : ℤ) : W :=
   if 0 ≤ t then w (t : ZMod r) else v t
 
 -- `{N : ℕ}` is implicit because Lean can read N off the type of `x : Fin N`.
 -- `W × ZMod r` is the type of pairs, and `(a, b)` builds a pair.
 /-- The box of position `x`: its symbol together with `x mod r`. -/
-def box (s : ℕ → ℤ) (w : ZMod r → W) (v : ℤ → W) {N : ℕ}
+def box (τ : ℕ → ℤ) (w : ZMod r → W) (v : ℤ → W) {N : ℕ}
     (x : Fin N) : W × ZMod r :=
-  (symbol w v (s x), (x.val : ZMod r))
+  (symbol w v (τ x), (x.val : ZMod r))
 
 /-- The positions among the first `N` that hold an original tag (`≥ 0`). -/
-def originals (s : ℕ → ℤ) (N : ℕ) : Finset (Fin N) :=
-  univ.filter (fun x : Fin N => 0 ≤ s x)
+def originals (τ : ℕ → ℤ) (N : ℕ) : Finset (Fin N) :=
+  univ.filter (fun x : Fin N => 0 ≤ τ x)
 
 /-- The positions among the first `N` that hold an inserted tag (`< 0`). Its size is `I`. -/
-def inserteds (s : ℕ → ℤ) (N : ℕ) : Finset (Fin N) :=
-  univ.filter (fun x : Fin N => s x < 0)
+def inserteds (τ : ℕ → ℤ) (N : ℕ) : Finset (Fin N) :=
+  univ.filter (fun x : Fin N => τ x < 0)
 
 /-- Every position is original or inserted: `#originals + #inserteds = N`. -/
-theorem original_card (s : ℕ → ℤ) (N : ℕ) :
-    (originals s N).card + (inserteds s N).card = N := by
+theorem original_card (τ : ℕ → ℤ) (N : ℕ) :
+    (originals τ N).card + (inserteds τ N).card = N := by
   -- Mathlib: |{x | P x}| + |{x | ¬P x}| = |all|. `have :=` names the fact `this`.
   have := filter_card_add_filter_neg_card_eq_card
-    (s := (univ : Finset (Fin N))) (fun x : Fin N => 0 ≤ s x)
-  -- `not_le` rewrites ¬(0 ≤ s x) as s x < 0, which matches `inserteds`.
+    (s := (univ : Finset (Fin N))) (fun x : Fin N => 0 ≤ τ x)
+  -- `not_le` rewrites ¬(0 ≤ τ x) as τ x < 0, which matches `inserteds`.
   simpa [originals, inserteds, not_le] using this
 
 -- Idea: an original entry with tag t at position x has box (w (t mod r), x mod r), and
--- x = t + d for a displacement d ∈ [-D, A]. So the box is determined by the pair
--- (t mod r, d), and there are r · (A+D+1) such pairs.
+-- x = t + s for a displacement s ∈ [-D, A] (the report's s). So the box is determined by the
+-- pair (t mod r, s), and there are r · (A+D+1) such pairs.
 /-- The retained originals use at most (A+D+1)r value-residue pairs. -/
-theorem Edited.original_boxes {A D s} (h : Edited A D s)
+theorem Edited.original_boxes {A D τ} (h : Edited A D τ)
     (w : ZMod r → W) (v : ℤ → W) (N : ℕ) :
-    ((originals s N).image (box s w v)).card ≤ (A + D + 1) * r := by
-  -- All pairs (t mod r, d) with d ∈ [-D, A]. `×ˢ` is the product of two finite sets.
+    ((originals τ N).image (box τ w v)).card ≤ (A + D + 1) * r := by
+  -- All pairs (t mod r, s) with s ∈ [-D, A]. `×ˢ` is the product of two finite sets.
   let choices : Finset (ZMod r × ℤ) := univ ×ˢ Icc (-(D : ℤ)) (A : ℤ)
-  -- The box that such a pair determines: (symbol, (t + d) mod r). `p.1` and `p.2` are the
+  -- The box that such a pair determines: (symbol, (t + s) mod r). `p.1` and `p.2` are the
   -- two components of the pair p.
   let place : ZMod r × ℤ → W × ZMod r := fun p => (w p.1, p.1 + (p.2 : ZMod r))
   -- Every box occupied by an original entry is `place` of some choice.
-  have hs : (originals s N).image (box s w v) ⊆ choices.image place := by
+  have hs : (originals τ N).image (box τ w v) ⊆ choices.image place := by
     intro b hb
-    -- b is the box of some original position x. `rfl` replaces b by `box s w v x`.
+    -- b is the box of some original position x. `rfl` replaces b by `box τ w v x`.
     obtain ⟨x, hx, rfl⟩ := mem_image.mp hb
     -- x is original, i.e. its tag is ≥ 0.
-    have hx' : 0 ≤ s x := (mem_filter.mp hx).2
+    have hx' : 0 ≤ τ x := (mem_filter.mp hx).2
     -- `refine` is like `exact`, but each `?_` hole becomes a new goal. We choose the pair
-    -- (s x mod r, x - s x) and must show (1) it is in `choices` and (2) `place` sends it to
+    -- (τ x mod r, x - τ x) and must show (1) it is in `choices` and (2) `place` sends it to
     -- the box of x.
-    refine mem_image.mpr ⟨((s x : ZMod r), (x.val : ℤ) - s x), ?_, ?_⟩
-    -- (1) The displacement x - s x is in [-D, A] by `Edited.displacement`.
+    refine mem_image.mpr ⟨((τ x : ZMod r), (x.val : ℤ) - τ x), ?_, ?_⟩
+    -- (1) The displacement x - τ x is in [-D, A] by `Edited.displacement`.
     · exact mem_product.mpr ⟨mem_univ _, mem_Icc.mpr (h.displacement x hx')⟩
-    -- (2) Unfold the definitions. The symbol is w (s x) because s x ≥ 0, and
-    -- s x + (x - s x) = x mod r.
+    -- (2) Unfold the definitions. The symbol is w (τ x) because τ x ≥ 0, and
+    -- τ x + (x - τ x) = x mod r.
     · simp [place, box, symbol, hx', Int.cast_sub]
   -- Count the choices: r residues times (A + D + 1) displacements.
   have hc : choices.card = r * (A + D + 1) := by
@@ -148,21 +151,21 @@ theorem Edited.original_boxes {A D s} (h : Edited A D s)
 -- Together with the previous theorem: all of the first N positions occupy at most
 -- (A+D+1)·r + I boxes, where I = #inserteds.
 /-- Inserts can add at most one box apiece, including repeated symbols. -/
-theorem Edited.all_boxes {A D s} (h : Edited A D s)
+theorem Edited.all_boxes {A D τ} (h : Edited A D τ)
     (w : ZMod r → W) (v : ℤ → W) (N : ℕ) :
-    ((univ : Finset (Fin N)).image (box s w v)).card ≤
-      (A + D + 1) * r + (inserteds s N).card := by
+    ((univ : Finset (Fin N)).image (box τ w v)).card ≤
+      (A + D + 1) * r + (inserteds τ N).card := by
   -- Every box is occupied by an original entry or by an inserted one.
-  have hs : (univ : Finset (Fin N)).image (box s w v) ⊆
-      (originals s N).image (box s w v) ∪ (inserteds s N).image (box s w v) := by
+  have hs : (univ : Finset (Fin N)).image (box τ w v) ⊆
+      (originals τ N).image (box τ w v) ∪ (inserteds τ N).image (box τ w v) := by
     intro b hb
     obtain ⟨x, hx, rfl⟩ := mem_image.mp hb
     -- Two cases: x holds an original tag, or it does not.
-    by_cases h0 : 0 ≤ s x
+    by_cases h0 : 0 ≤ τ x
     -- Original: the box is in the left part of the union.
     · apply mem_union_left
       exact mem_image.mpr ⟨x, mem_filter.mpr ⟨mem_univ _, h0⟩, rfl⟩
-    -- Inserted: the box is in the right part. `by omega` turns ¬(0 ≤ s x) into s x < 0.
+    -- Inserted: the box is in the right part. `by omega` turns ¬(0 ≤ τ x) into τ x < 0.
     · apply mem_union_right
       exact mem_image.mpr ⟨x, mem_filter.mpr ⟨mem_univ _, by omega⟩, rfl⟩
   -- |all boxes| ≤ |union| ≤ |original boxes| + |inserted boxes| ≤ (A+D+1)r + I.

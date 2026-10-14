@@ -7,14 +7,16 @@ These lemmas are independent of the literal-edit bookkeeping.
 namespace Glitchy
 open Finset
 
-/-- A bounded test function separates a set from its complement. No disjoint
-window decomposition is needed: the good outcomes are a finite set. -/
+/-- A bounded test function separates a set from its complement: the report's
+Eq. (fejer-mass). Here `K` plays the role of `F_T/T`, `E` is a lower bound for the
+expectation `E_T/T`, and `q` bounds `K` outside `G`; the conclusion is `p ≥ (E - q)/(1 - q)`.
+No disjoint window decomposition is needed: the good outcomes are a finite set. -/
 theorem mass_from_test_function {Y : Type*} [Fintype Y] [DecidableEq Y]
-    (P K : Y → ℝ) (G : Finset Y) (q L : ℝ)
+    (P K : Y → ℝ) (G : Finset Y) (q E : ℝ)
     (hP : ∀ y, 0 ≤ P y) (hPsum : ∑ y, P y = 1)
     (hK : ∀ y, K y ≤ 1) (hout : ∀ y, y ∉ G → K y ≤ q)
-    (hq : q < 1) (hL : L ≤ ∑ y, P y * K y) :
-    (L - q) / (1 - q) ≤ ∑ y ∈ G, P y := by
+    (hq : q < 1) (hE : E ≤ ∑ y, P y * K y) :
+    (E - q) / (1 - q) ≤ ∑ y ∈ G, P y := by
   have hpoint (y : Y) : P y * K y ≤
       (if y ∈ G then P y else 0) + q * (P y - (if y ∈ G then P y else 0)) := by
     by_cases hy : y ∈ G
@@ -26,27 +28,30 @@ theorem mass_from_test_function {Y : Type*} [Fintype Y] [DecidableEq Y]
   apply (div_le_iff₀ (by linarith : 0 < 1 - q)).mpr
   nlinarith
 
-/-- The lower bound obtained by summing the matching moments. -/
+/-- The lower bound obtained by summing the matching moments: the right-hand side of the
+report's Eq. (fejer-expectation), a lower bound for `E_T/T`. -/
 noncomputable def fejerLower (t T : ℝ) : ℝ :=
   1 - 4 * (T^2 - 1) / (9 * t * T) - (T - 1) / (3 * t * T)
 
-/-- Normalization of the edit-pair estimate uses only r ≥ 2 and k ≥ 1. -/
-theorem normalised_matching_bound (k r ell t I C : ℝ)
-    (hk : 1 ≤ k) (hr : 2 ≤ r) (hell : 1 ≤ ell) (ht : 0 < t) (hI : I ≤ k)
-    (hC : 1 - (2 * (k + 1) * ell + 2 * I / r) / ((2 * k + 1) * t) ≤ C) :
+/-- The report's Eq. (normalised-matching): with `h = ℓr` and `N = t·r(2k+1)/2`, the
+matching bound `C ≥ 1 - ((k+1)h + A)/N` becomes the hypothesis `hC`, and `r ≥ 2`,
+`A ≤ k`, `k ≥ 1` turn it into `C ≥ 1 - (4ℓ+1)/(3t)`. -/
+theorem normalised_matching_bound (k r ell t A C : ℝ)
+    (hk : 1 ≤ k) (hr : 2 ≤ r) (hell : 1 ≤ ell) (ht : 0 < t) (hA : A ≤ k)
+    (hC : 1 - (2 * (k + 1) * ell + 2 * A / r) / ((2 * k + 1) * t) ≤ C) :
     1 - (4 * ell + 1) / (3 * t) ≤ C := by
   have hr0 : 0 < r := by linarith
   have hk0 : 0 ≤ k := by linarith
-  have hIr : 2 * I / r ≤ k := (div_le_iff₀ hr0).mpr (by nlinarith)
+  have hAr : 2 * A / r ≤ k := (div_le_iff₀ hr0).mpr (by nlinarith)
   have hd : 0 < (2 * k + 1) * t := by positivity
-  have hratio : (2 * (k + 1) * ell + 2 * I / r) / ((2 * k + 1) * t) ≤
+  have hratio : (2 * (k + 1) * ell + 2 * A / r) / ((2 * k + 1) * t) ≤
       (4 * ell + 1) / (3 * t) := by
     apply (div_le_div_iff₀ hd (by positivity : 0 < 3 * t)).mpr
     have hprod := mul_nonneg (by linarith : 0 ≤ k - 1) (by linarith : 0 ≤ 2 * ell - 1)
-    have hnum : 3 * (2 * (k + 1) * ell + 2 * I / r) ≤ (4 * ell + 1) * (2 * k + 1) := by
+    have hnum : 3 * (2 * (k + 1) * ell + 2 * A / r) ≤ (4 * ell + 1) * (2 * k + 1) := by
       nlinarith
     nlinarith [mul_nonneg (by linarith : 0 ≤ (4 * ell + 1) * (2 * k + 1) -
-      3 * (2 * (k + 1) * ell + 2 * I / r)) ht.le]
+      3 * (2 * (k + 1) * ell + 2 * A / r)) ht.le]
   linarith
 
 /-- Chord estimate for sine, directly from its concavity on [0, π]. -/
@@ -59,7 +64,8 @@ theorem sin_chord (b u : ℝ) (hb : 0 ≤ b) (hbpi : b ≤ Real.pi)
       (show b ∈ Set.Icc 0 Real.pi from ⟨hb, hbpi⟩)
       (show 0 ≤ 1 - u by linarith) hu (by ring : 1 - u + u = 1)
 
-/-- The elementary sine estimate in the short-kernel regime. -/
+/-- The elementary sine estimate in the short-kernel regime (report, Step 4):
+`t sin²(π/t) ≥ 4/3` for `2 ≤ t ≤ 6`. -/
 theorem short_sine_bound (t : ℝ) (ht : 2 ≤ t) (ht6 : t ≤ 6) :
     (4 : ℝ) / 3 ≤ t * Real.sin (Real.pi / t)^2 := by
   have ht0 : 0 < t := by linarith
@@ -101,7 +107,8 @@ theorem short_sine_bound (t : ℝ) (ht : 2 ≤ t) (ht6 : t ≤ 6) :
     have hnonneg : 0 ≤ t * Real.sin (Real.pi / t)^2 := by positivity
     nlinarith [mul_nonneg (show 0 ≤ 6 - t by linarith) hnonneg]
 
-/-- T=2 gives the stronger bound 3/8. -/
+/-- Short kernel, `2 ≤ t ≤ 6` (report, Step 4): `T = 2` gives the stronger bound 3/8.
+The hypothesis `hE` is Eq. (fejer-mass) with `q = cos²(π/t)`. -/
 theorem short_fejer_mass (t p : ℝ) (ht : 2 ≤ t) (ht6 : t ≤ 6)
     (hE : fejerLower t 2 ≤ p + (1 - p) * Real.cos (Real.pi / t)^2) :
     (3 : ℝ) / 8 ≤ p := by
@@ -124,7 +131,8 @@ theorem short_fejer_mass (t p : ℝ) (ht : 2 ≤ t) (ht6 : t ≤ 6)
   have hpn : 0 ≤ 1 - p := by linarith
   nlinarith [mul_le_mul_of_nonneg_left hs hpn]
 
-/-- The ceiling choice T=ceil(3t/4) has a uniform expectation lower bound. -/
+/-- Long kernel, `t > 6` (report, Step 4): the ceiling choice `T = ⌈3t/4⌉` gives
+`E_T/T ≥ 2/3 - 7/(9t) ≥ 29/54`. The estimate itself only needs `t ≥ 6`. -/
 theorem long_fejer_lower (t T : ℝ) (ht : 6 ≤ t) (hT : 0 < T)
     (hTupper : T ≤ 3 * t / 4 + 1) : (29 : ℝ) / 54 ≤ fejerLower t T := by
   have ht0 : 0 < t := by linarith
@@ -147,7 +155,7 @@ theorem long_fejer_lower (t T : ℝ) (ht : 6 ≤ t) (hT : 0 < T)
   have he2 : 4/(9*t) + 1/(3*t) = 7/(9*t) := by ring
   linarith
 
-/-- The geometric-sum outside bound is at most 64/243 in the long regime. -/
+/-- Long kernel: outside `G_k`, the geometric-sum bound `1/(T² sin²(π/t))` is at most 64/243. -/
 theorem long_fejer_outside (t T : ℝ) (ht : 6 ≤ t) (hT : 3*t/4 ≤ T) :
     1 / (T^2 * Real.sin (Real.pi/t)^2) ≤ (64 : ℝ)/243 := by
   have ht0 : 0 < t := by linarith
@@ -170,7 +178,8 @@ theorem long_fejer_outside (t T : ℝ) (ht : 6 ≤ t) (hT : 3*t/4 ≤ T) :
   apply (div_le_iff₀ (show 0 < T^2 * Real.sin (Real.pi/t)^2 by linarith)).mpr
   nlinarith
 
-/-- Combine the long-regime expectation and outside bounds. -/
+/-- Long kernel: combine the expectation and outside bounds in Eq. (fejer-mass),
+`p ≥ (29/54 - 64/243)/(1 - 64/243) = 133/358`. Here `E` is `E_T/T`. -/
 theorem long_fejer_mass (p E q : ℝ) (hE : (29 : ℝ)/54 ≤ E)
     (hq : q ≤ (64 : ℝ)/243) (hp : p ≤ 1) (hupper : E ≤ p + (1-p)*q) :
     (133 : ℝ)/358 ≤ p := by

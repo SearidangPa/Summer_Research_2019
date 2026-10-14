@@ -12,22 +12,23 @@ import Glitchy.ModelI
 namespace Glitchy
 open Finset
 
--- `![a, b, c]` is a vector, i.e. a function Fin 3 → ℕ. Nesting gives a 5 × 3 table.
--- Rows are symbols: 0, 1, 2 are the periodic symbols and 3, 4 are the two inserted symbols.
--- Columns are positions mod 3. Each entry counts the positions in that box.
-/-- The value-residue count table in the three-glitch figure. -/
+-- `![x, y, z]` is a vector, i.e. a function Fin 3 → ℕ. Nesting gives a 5 × 3 table.
+-- Rows are symbols u: 0, 1, 2 are the periodic symbols a, b, c of the figure, and 3, 4 are
+-- the inserted symbols d, e. Columns are residues b = x mod 3. Entry (u, b) is the report's
+-- box count n_{ub}: the number of positions in that box.
+/-- The symbol-residue count table in the three-glitch figure. -/
 def exampleCounts : Fin 5 → Fin 3 → ℕ :=
   ![![1, 2, 1], ![1, 1, 3], ![2, 1, 1], ![1, 0, 0], ![0, 1, 0]]
 
 -- `by decide` evaluates both sides and checks that they agree.
 /-- The table counts all 15 positions. -/
-theorem example_count_total : (∑ w, ∑ b, exampleCounts w b) = 15 := by decide
+theorem example_count_total : (∑ u, ∑ b, exampleCounts u b) = 15 := by decide
 /-- The sum of the squared entries is 25. -/
-theorem example_count_squares : (∑ w, ∑ b, (exampleCounts w b)^2) = 25 := by decide
+theorem example_count_squares : (∑ u, ∑ b, (exampleCounts u b)^2) = 25 := by decide
 
 /-- The total ideal-outcome probability: `(r/N²) · ∑ (count)² = 3/15² · 25 = 1/3`. -/
 theorem example_mass :
-    (3 : ℝ) / 15^2 * ∑ w, ∑ b, ((exampleCounts w b : ℝ))^2 = 1 / 3 := by
+    (3 : ℝ) / 15^2 * ∑ u, ∑ b, ((exampleCounts u b : ℝ))^2 = 1 / 3 := by
   -- The previous theorem works in ℕ; `exact_mod_cast` moves it into ℝ.
   have hc : (∑ w, ∑ b, ((exampleCounts w b : ℝ))^2) = (25 : ℝ) := by
     exact_mod_cast example_count_squares
@@ -50,8 +51,12 @@ theorem one_outcome_cancels : (1 / 2 : ℂ) + (1 / 2 : ℂ) * (-1) = 0 := by nor
 
 -- Read the nested calls from the inside out. Start from the unedited sequence x ↦ x, insert
 -- at position 3 (first insertion, A = 0, tag -1), insert at position 7 (A = 1, tag -2),
--- and finally delete position 11.
-/-- The literal history depicted in the figure, with unique insertion tags -1 and -2. -/
+-- and finally delete position 11. Positions are counted in the current sequence, so these
+-- are the report's "before original index 3", "before original index 6", and "delete
+-- original index 9": the first insertion moves original index 6 to position 7, and the two
+-- insertions move original index 9 to position 11.
+/-- The tag sequence `τ` of the literal history depicted in the figure, with insertion
+tags -1 (symbol d) and -2 (symbol e). -/
 def exampleSequence : ℕ → ℤ :=
   deleteAt (insertAt (insertAt (fun x => (x : ℤ)) 3 0) 7 1) 11
 
@@ -64,32 +69,32 @@ theorem example_edited : Edited 2 1 exampleSequence :=
 
 -- An element of `Fin 5` is a pair ⟨value, proof that value < 5⟩. The proof chains
 -- b.val < 3 (`ZMod.val_lt`) and 3 < 5 (`by decide`) with `Nat.lt_trans`.
-/-- Periodic symbols: residue `b` shows symbol `b ∈ {0, 1, 2}`. -/
+/-- Periodic symbols `w`: residue `b` shows symbol `b ∈ {0, 1, 2}` (a, b, c in the figure). -/
 def exampleAlphabet (b : ZMod 3) : Fin 5 :=
   ⟨b.val, Nat.lt_trans (ZMod.val_lt b) (by decide)⟩
 
-/-- Inserted symbols: tag `-1` shows symbol `3`; any other tag (here `-2`) shows `4`. -/
+/-- Inserted symbols `v`: tag `-1` shows symbol `3` (d); any other tag (here `-2`) shows `4` (e). -/
 def exampleInserted (t : ℤ) : Fin 5 := if t = -1 then 3 else 4
 
--- `revert a b` turns the goal back into `∀ a b, ...`. That is a statement about finitely many
+-- `revert u b` turns the goal back into `∀ u b, ...`. That is a statement about finitely many
 -- cases (5 × 3), so `decide` can check all of them by computation.
 /-- Kernel evaluation checks that the actual edited prefix gives exactly the pictured table. -/
-theorem example_counts_correct (a : Fin 5) (b : ZMod 3) :
+theorem example_counts_correct (u : Fin 5) (b : ZMod 3) :
     ((univ : Finset (Fin 15)).filter
-      (fun x => box exampleSequence exampleAlphabet exampleInserted x = (a,b))).card =
-      exampleCounts a ⟨b.val, ZMod.val_lt b⟩ := by
-  revert a b
+      (fun x => box exampleSequence exampleAlphabet exampleInserted x = (u,b))).card =
+      exampleCounts u ⟨b.val, ZMod.val_lt b⟩ := by
+  revert u b
   decide
 
 /-- Exactly two inserted entries survive in the first 15 positions (`I = 2`). -/
 theorem example_inserted_count : (inserteds exampleSequence 15).card = 2 := by decide
 
 /-- The same table, stated with `prefixCounts` (real numbers). -/
-theorem example_prefix_counts (a : Fin 5) (b : ZMod 3) :
-    prefixCounts exampleSequence exampleAlphabet exampleInserted 15 a b =
-      (exampleCounts a ⟨b.val, ZMod.val_lt b⟩ : ℝ) := by
+theorem example_prefix_counts (u : Fin 5) (b : ZMod 3) :
+    prefixCounts exampleSequence exampleAlphabet exampleInserted 15 u b =
+      (exampleCounts u ⟨b.val, ZMod.val_lt b⟩ : ℝ) := by
   unfold prefixCounts fiberCounts
-  exact_mod_cast example_counts_correct a b
+  exact_mod_cast example_counts_correct u b
 
 -- The three ideal outcomes are y = 0, 5, 10 (that is, c·5 for c = 0, 1, 2).
 /-- Exact Fourier mass for the actual three-edit sequence in the illustration. -/
@@ -116,7 +121,7 @@ theorem example_fourier_mass :
   simp_rw [example_prefix_counts]
   -- `change` restates the goal in a form that is equal by definition. (`ZMod 3` is defined to
   -- be `Fin 3`.) The new form matches `example_mass` exactly.
-  change (3 : ℝ) / 15^2 * ∑ a : Fin 5, ∑ b : Fin 3, ((exampleCounts a b : ℝ))^2 = _
+  change (3 : ℝ) / 15^2 * ∑ u : Fin 5, ∑ b : Fin 3, ((exampleCounts u b : ℝ))^2 = _
   exact example_mass
 
 end Glitchy

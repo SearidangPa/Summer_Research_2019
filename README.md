@@ -43,7 +43,7 @@ and a worked three-glitch count table.
 
 ### When `r` does not divide `N` (Section 4.2)
 
-For every `k >= 1` and `2 <= r <= N`, any literal edit history has total probability
+For every `k >= 1` and `r >= 2`, any literal edit history has total probability
 at least **`1/3 >= 1/(2k+1)`** within distance `k` of the integers nearest `cN/r`.
 There is no divisibility or extra sample-size assumption. The written Fejér-kernel
 proof actually gives `133/358` and is checked end to end in Lean. `glitchy.py check`

@@ -20,8 +20,8 @@ private theorem upperTie_nearest : NearestPeaks (N := 7) upperTiePeaks := by
 /-- Both nearest-integer choices at the peak 7/2 are accepted. The insertion
 matches the old symbol 0; no distinctness or novelty assumption is used. -/
 theorem nondividing_tie_regression :
-    let s := insertAt (fun x => (x : ℤ)) 3 0
-    let f := fun x : Fin 7 => symbol (fun c : ZMod 2 => c) (fun _ : ℤ => (0 : ZMod 2)) (s x)
+    let τ := insertAt (fun x => (x : ℤ)) 3 0
+    let f := fun x : Fin 7 => symbol (fun c : ZMod 2 => c) (fun _ : ℤ => (0 : ZMod 2)) (τ x)
     ((133 : ℝ)/358 ≤ ∑ y ∈ roundedWindows (N := 7) lowerTiePeaks 1, fourierProbability f y.val) ∧
     ((133 : ℝ)/358 ≤ ∑ y ∈ roundedWindows (N := 7) upperTiePeaks 1, fourierProbability f y.val) := by
   dsimp
@@ -33,10 +33,10 @@ theorem nondividing_tie_regression :
 
 /-- Three mixed edits with one inserted tag deleted again; N=31, r=2, k=3. -/
 theorem nondividing_mixed_regression :
-    let s := insertAt (deleteAt (insertAt (fun x => (x : ℤ)) 4 0) 4) 9 1
+    let τ := insertAt (deleteAt (insertAt (fun x => (x : ℤ)) 4 0) 4) 9 1
     (133 : ℝ)/358 ≤ ∑ y ∈ roundedWindows (N := 31) (canonicalPeaks 31 2) 3,
       fourierProbability (fun x : Fin 31 =>
-        symbol (fun c : ZMod 2 => c) (fun _ : ℤ => (1 : ZMod 2)) (s x)) y.val := by
+        symbol (fun c : ZMod 2 => c) (fun _ : ℤ => (1 : ZMod 2)) (τ x)) y.val := by
   exact general_k_nondividing_canonical
     (((Edited.original.insert 4).delete 4).insert 9)
     (fun c => c) (fun _ => 1) (by norm_num) (by norm_num)

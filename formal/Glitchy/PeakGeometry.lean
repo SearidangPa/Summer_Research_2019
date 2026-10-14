@@ -1,12 +1,14 @@
 import Glitchy.FejerKernel
 
-/-! Rounded, circular radius-k windows and their separation from integer phases. -/
+/-! Rounded, circular radius-k windows and their separation from integer phases:
+Section 4.2, Step 2 of the report. -/
 namespace Glitchy
 open Finset
 
 variable {N r : ℕ} [NeZero N] [NeZero r]
 
-/-- Any choice at half-integer ties is permitted. The integer representatives
+/-- `g c` is a nearest integer to `cN/r` (the report's `g_c`).
+Any choice at half-integer ties is permitted. The integer representatives
 need not be reduced modulo N: the neighbourhood definition does that. -/
 def NearestPeaks (g : ZMod r → ℤ) : Prop :=
   ∀ c, |(g c : ℝ) - (c.val : ℝ)*N/r| ≤ (1 : ℝ)/2
@@ -20,13 +22,15 @@ theorem canonicalPeaks_nearest : NearestPeaks (N := N) (canonicalPeaks N r) := b
   intro c
   simpa only [canonicalPeaks, abs_sub_comm] using abs_sub_round ((c.val : ℝ)*N/r)
 
-/-- Circular windows, represented as a set, so overlaps are counted once. -/
+/-- The report's `G_k = {y : d_N(y, g_c) ≤ k for some c}`, where
+`d_N(y, g) = min_m |y - g - m·N|` is circular distance. It is a set, so overlapping windows
+are counted once. -/
 noncomputable def roundedWindows (g : ZMod r → ℤ) (k : ℕ) : Finset (ZMod N) := by
   classical
-  exact univ.filter fun y => ∃ c : ZMod r, ∃ q : ℤ,
-    |(y.val : ℤ) - g c - q*(N : ℤ)| ≤ (k : ℤ)
+  exact univ.filter fun y => ∃ c : ZMod r, ∃ m : ℤ,
+    |(y.val : ℤ) - g c - m*(N : ℤ)| ≤ (k : ℤ)
 
-/-- Some integer realizes the folded phase distance. -/
+/-- Some integer `m` realizes the folded phase distance `θ_y = |r y/N - m|`. -/
 theorem phaseDistance_witness (r : ℕ) (y : ZMod N) :
     ∃ m : ℕ, |(r : ℝ)*y.val/N - m| = phaseDistance ((r : ZMod N)*y) := by
   let b := r*y.val
@@ -60,53 +64,56 @@ theorem phaseDistance_witness (r : ℕ) (y : ZMod N) :
 /-- A real peak and its translated rounded representative near any outcome. -/
 theorem rounded_peak_witness (g : ZMod r → ℤ) (hg : NearestPeaks (N := N) g)
     (y : ZMod N) :
-    ∃ c : ZMod r, ∃ q : ℤ,
-      |(y.val : ℝ) - (g c : ℝ) - q*N| ≤
+    ∃ c : ZMod r, ∃ m : ℤ,
+      |(y.val : ℝ) - (g c : ℝ) - m*N| ≤
         ((N : ℝ)/r)*phaseDistance ((r : ZMod N)*y) + 1/2 := by
-  obtain ⟨m, hm⟩ := phaseDistance_witness r y
-  let c : ZMod r := m
-  let q : ℤ := ((m/r : ℕ) : ℤ)
+  -- n is an integer nearest to r·y/N. Write n = c + m·r with c = n mod r: then n·N/r is the
+  -- real peak c·N/r translated by m·N.
+  obtain ⟨n, hn⟩ := phaseDistance_witness r y
+  let c : ZMod r := n
+  let m : ℤ := ((n/r : ℕ) : ℤ)
   have hN : (N : ℝ) ≠ 0 := by exact_mod_cast NeZero.ne N
   have hr : (0 : ℝ) < r := by exact_mod_cast NeZero.pos r
-  have hdecomp : (m : ℝ) = c.val + (q : ℝ)*r := by
-    have hm' := Nat.mod_add_div m r
-    dsimp [c, q]
+  have hdecomp : (n : ℝ) = c.val + (m : ℝ)*r := by
+    have hn' := Nat.mod_add_div n r
+    dsimp [c, m]
     rw [ZMod.val_natCast]
-    have hn : m = m%r+(m/r)*r := by simpa [Nat.mul_comm] using hm'.symm
+    have hnr : n = n%r+(n/r)*r := by simpa [Nat.mul_comm] using hn'.symm
     simpa only [Nat.cast_add, Nat.cast_mul, Int.cast_natCast] using
-      congrArg (fun n : ℕ => (n : ℝ)) hn
-  have hd : |(y.val : ℝ) - (m : ℝ)*N/r| =
+      congrArg (fun i : ℕ => (i : ℝ)) hnr
+  have hd : |(y.val : ℝ) - (n : ℝ)*N/r| =
       ((N : ℝ)/r)*phaseDistance ((r : ZMod N)*y) := by
-    have he : (y.val : ℝ) - (m : ℝ)*N/r =
-        ((N : ℝ)/r)*((r : ℝ)*y.val/N-m) := by field_simp; ring
-    rw [he, abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ N/r), hm]
-  refine ⟨c, q, ?_⟩
-  have he : (y.val : ℝ) - (g c : ℝ) - (q : ℝ)*N =
-      ((y.val : ℝ)-(m : ℝ)*N/r) + ((c.val : ℝ)*N/r - (g c : ℝ)) := by
+    have he : (y.val : ℝ) - (n : ℝ)*N/r =
+        ((N : ℝ)/r)*((r : ℝ)*y.val/N-n) := by field_simp; ring
+    rw [he, abs_mul, abs_of_nonneg (by positivity : (0 : ℝ) ≤ N/r), hn]
+  refine ⟨c, m, ?_⟩
+  have he : (y.val : ℝ) - (g c : ℝ) - (m : ℝ)*N =
+      ((y.val : ℝ)-(n : ℝ)*N/r) + ((c.val : ℝ)*N/r - (g c : ℝ)) := by
     rw [hdecomp]
     field_simp
     ring
   rw [he]
   calc
-    _ ≤ |(y.val : ℝ)-(m : ℝ)*N/r| + |(c.val : ℝ)*N/r - (g c : ℝ)| := abs_add _ _
+    _ ≤ |(y.val : ℝ)-(n : ℝ)*N/r| + |(c.val : ℝ)*N/r - (g c : ℝ)| := abs_add _ _
     _ ≤ ((N : ℝ)/r)*phaseDistance ((r : ZMod N)*y) + 1/2 := by
       rw [hd, abs_sub_comm]
       exact add_le_add_left (hg c) _
 
 /-- The complement of radius-k rounded windows is separated by k+1/2
-from the real peaks. This includes every possible rounding-tie choice. -/
+from the real peaks, so `θ_y ≥ r(2k+1)/(2N) = 1/t` (report, Step 2).
+This includes every possible rounding-tie choice. -/
 theorem roundedWindows_separation (g : ZMod r → ℤ) (hg : NearestPeaks (N := N) g)
     (k : ℕ) (y : ZMod N) (hy : y ∉ roundedWindows (N := N) g k) :
     ((r : ℝ)*(2*k+1))/(2*N) ≤ phaseDistance ((r : ZMod N)*y) := by
   classical
-  obtain ⟨c, q, hb⟩ := rounded_peak_witness g hg y
-  have hout : (k : ℤ) < |(y.val : ℤ)-g c-q*(N : ℤ)| := by
+  obtain ⟨c, m, hb⟩ := rounded_peak_witness g hg y
+  have hout : (k : ℤ) < |(y.val : ℤ)-g c-m*(N : ℤ)| := by
     by_contra hh
     apply hy
     simp only [roundedWindows, mem_filter, mem_univ, true_and]
-    exact ⟨c, q, by omega⟩
-  have hint : (k : ℤ)+1 ≤ |(y.val : ℤ)-g c-q*(N : ℤ)| := by omega
-  have hreal : (k : ℝ)+1 ≤ |(y.val : ℝ)-(g c : ℝ)-(q : ℝ)*N| := by exact_mod_cast hint
+    exact ⟨c, m, by omega⟩
+  have hint : (k : ℤ)+1 ≤ |(y.val : ℤ)-g c-m*(N : ℤ)| := by omega
+  have hreal : (k : ℝ)+1 ≤ |(y.val : ℝ)-(g c : ℝ)-(m : ℝ)*N| := by exact_mod_cast hint
   have hN : (0 : ℝ) < N := by exact_mod_cast NeZero.pos N
   have hr : (0 : ℝ) < r := by exact_mod_cast NeZero.pos r
   apply (div_le_iff₀ (by positivity : (0 : ℝ) < 2*N)).mpr
@@ -117,7 +124,7 @@ theorem roundedWindows_separation (g : ZMod r → ℤ) (hg : NearestPeaks (N := 
   rw [he] at hm
   nlinarith
 
-/-- Strictly overlapping windows cover every outcome. -/
+/-- If `N < (2k+1)r`, the windows cover every outcome (report, Step 2). -/
 theorem roundedWindows_full_of_lt (g : ZMod r → ℤ) (hg : NearestPeaks (N := N) g)
     (k : ℕ) (hsize : N < (2*k+1)*r) : roundedWindows (N := N) g k = univ := by
   classical

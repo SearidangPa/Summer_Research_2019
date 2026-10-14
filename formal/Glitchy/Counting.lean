@@ -2,6 +2,9 @@ import Mathlib
 
 -- Pure inequalities about finite sums of real numbers. Nothing here knows about sequences,
 -- edits, or Fourier transforms; later files plug their numbers into these results.
+-- These are Steps 3 and 4 of the report's proof in Section 4.1. Here one index `b : B` is a
+-- whole box: Literal.lean takes B = W × ZMod r, so `n b` is the report's n_{ub} for the box
+-- b = (u, b').
 --
 -- Lean ideas introduced here:
 --   * `{B : Type*} [Fintype B]`: "for any finite type B" (later, B is the set of boxes)
@@ -17,7 +20,7 @@ open Finset
 -- `(n : B → ℝ)`: one real number per b. Think of n b as the count in box b.
 -- `hq`: the number of b with n b ≠ 0 is at most Q.
 -- `(Q : ℝ)`: Q cast from ℕ to ℝ, so that it can multiply a real number.
-/-- Cauchy--Schwarz with an upper bound on the number of nonzero boxes:
+/-- Cauchy--Schwarz with an upper bound on the number of nonzero boxes (report, Step 3):
 if at most `Q` of the numbers `n b` are nonzero, then `(∑ n b)² ≤ Q · ∑ (n b)²`. -/
 theorem support_energy {B : Type*} [Fintype B] (n : B → ℝ) (Q : ℕ)
     (hq : (univ.filter (fun b => n b ≠ 0)).card ≤ Q) :
@@ -59,7 +62,7 @@ theorem support_energy {B : Type*} [Fintype B] (n : B → ℝ) (Q : ℕ)
 -- The right-hand side (r / N²) · ∑ (n b)² is exactly the total probability on the ideal
 -- outcomes (see `residue_mass` in Fourier.lean). With Q = (A+D+1)r + I occupied boxes this
 -- gives the report's bound r / ((A+D+1)r + I).
-/-- The finite-N box bound: no Fourier hypotheses are hidden here.
+/-- The finite-N box bound (report, Step 3): no Fourier hypotheses are hidden here.
 If the counts `n b` add up to `N > 0` and occupy at most `Q > 0` boxes, then
 `r / Q ≤ (r / N²) · ∑ (n b)²`. -/
 theorem mass_from_boxes {B : Type*} [Fintype B] (n : B → ℝ)
@@ -93,7 +96,7 @@ theorem mass_from_boxes {B : Type*} [Fintype B] (n : B → ℝ)
 -- them, and they occupy at most (k+1)·r boxes.
 -- `(hm : ∀ b, 0 ≤ m b ∧ m b ≤ n b)` is a hypothesis that is itself a "for all";
 -- `hm b` specializes it to one b.
-/-- The retained-entry bound; zero retained entries are allowed.
+/-- The retained-entry bound (report, Step 4); zero retained entries are allowed.
 If `0 ≤ m ≤ n` boxwise, the `m b` add up to `N - I`, and at most `(k+1)r` of them are
 nonzero, then `(N - I)² / ((k+1) N²) ≤ (r / N²) · ∑ (n b)²`. -/
 theorem mass_from_retained {B : Type*} [Fintype B] (n m : B → ℝ)

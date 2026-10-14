@@ -174,7 +174,7 @@ Let $f : ZZ_N -> W$ have period $r$, with $r < sqrt(N)$. For most of this note w
 $ r divides N, quad M := N\/r, quad f(x) = w_(x mod r) "with" w_0, ..., w_(r-1) "distinct". $ <eq:standing>
 The algorithm prepares $N^(-1\/2) sum_x lr(|x chevron.r) lr(|f(x) chevron.r)$, applies the quantum Fourier
 transform to the first register and measures. Outcome $y$ appears with probability
-$ P_f (y) = 1/N^2 sum_(w in W) abs(sum_(x : f(x) = w) e^(2 pi i x y \/ N))^2 . $ <eq:pf>
+$ P_f (y) = 1/N^2 sum_(u in W) abs(sum_(x : f(x) = u) e^(2 pi i x y \/ N))^2 . $ <eq:pf>
 For the ideal function, value $w_a$ is taken on ${a + m r : 0 <= m < M}$, and the inner sum is
 $e^(2 pi i a y \/ N) sum_(m=0)^(M-1) e^(2 pi i m y \/ M) = M e^(2 pi i a y \/ N) bb(1)[M divides y]$. Hence
 $ P_0 (y) = 1/r dot bb(1)[M divides y], quad G := {c M : 0 <= c < r}. $ <eq:ideal>
@@ -280,23 +280,24 @@ ideal outcomes is at least $1\/(2k+1)$. If $k$ is small compared with $N$, a sec
 close to $1\/(k+1)$. Both are exact finite-$N$ guarantees. They require neither the block-shift
 idealization nor a continuum limit.
 
-The key is to count entries by two labels: their *output value* $w$ and their *input residue*
-$b = x mod r$. Call each pair $(w,b)$ a _box_. Averaging over all ideal Fourier outcomes turns
+The key is to count entries by two labels: their *output symbol* $u$ and their *input residue*
+$b = x mod r$, where $x$ is the entry's position. Call each pair $(u,b)$ a _box_. Averaging over all ideal Fourier outcomes turns
 interfering amplitudes into a sum of squared box counts. Glitches limit the number of occupied
 boxes, and spreading $N$ entries among only a few boxes forces that sum of squares to be large.
 
 #block(breakable: false)[
 #theorem(name: [General literal glitches, total mass], tags: (new, proved, leanchecked))[
   Let $N, r$ be positive integers with $r divides N$, and start from the infinite periodic
-  sequence with distinct values $w_0, ..., w_(r-1)$. Perform $k >= 0$ single-symbol insertions or
-  deletions at arbitrary positions, with arbitrary inserted values. Keep the first $N$ entries
-  of the resulting sequence, obtaining $f_k$. Let $I$ be the number of surviving inserted
-  entries in this prefix, so $0 <= I <= min(k,N)$.
+  sequence with symbols $w_0, ..., w_(r-1)$, which need not be distinct. Perform $A$
+  single-symbol insertions and $D$ single-symbol deletions, $k = A + D >= 0$ edits in all, in
+  any order, at arbitrary positions, and with arbitrary inserted symbols. Keep the first $N$
+  entries of the resulting sequence, obtaining $f_k$. Let $I$ be the number of surviving
+  inserted entries in this prefix, so $0 <= I <= min(A,N)$.
 
   For the measurement distribution $P_(f_k)$, define
   $ G := {c N\/r : 0 <= c < r}, quad
-    G_k := {y in ZZ_N : min_(g in G) d_N(y,g) <= k}, $
-  where $d_N$ is circular distance modulo $N$. Then
+    G_k := {y in ZZ_N : min_(g in G) d_N (y,g) <= k}, $
+  where $d_N (y,g) := min_(m in ZZ) abs(y-g-m N)$ is circular distance modulo $N$. Then
   $ Pr[Y in G_k] >= Pr[Y in G] >= r/((k+1)r + I)
     >= r/((k+1)r + k) >= 1/(2k+1). $ <eq:total>
   Independently,
@@ -310,7 +311,7 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
 
 #figure(
   image("report_figures/general_k_proof-1.svg", width: 70%),
-  caption: [Proof map. A box means one pair (output value, input residue modulo $r$).
+  caption: [Proof map. A box means one pair (output symbol, input residue modulo $r$).
     The count argument controls the _total_ probability on $G$, not its division among the
     individual good outcomes. Mermaid source: #text(font: "DejaVu Sans Mono", size: 8pt)[report_figures/general_k_proof.md].],
 ) <fig:total-proof>
@@ -320,20 +321,20 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
   *Step 1: Express the Fourier probability using box counts.*
 
   For any function $f : ZZ_N -> W$, let
-  $ n_(w b) := abs({x in {0, ..., N-1} : f(x)=w, x equiv b thick (mod r)}). $
-  These counts are nonnegative and $sum_(w,b) n_(w b)=N$. At an ideal outcome $y=c N\/r$,
+  $ n_(u b) := abs({x in {0, ..., N-1} : f(x)=u, x equiv b thick (mod r)}). $
+  These counts are nonnegative and $sum_(u,b) n_(u b)=N$. At an ideal outcome $y=c N\/r$,
   the phase depends on $x$ only through its residue $b$:
   $ e^(2 pi i x y\/N) = e^(2 pi i c x\/r) = e^(2 pi i c b\/r). $
   Thus @eq:pf becomes
-  $ P_f(c N\/r) = 1/N^2 sum_w abs(sum_(b=0)^(r-1) n_(w b) e^(2 pi i c b\/r))^2. $
+  $ P_f (c N\/r) = 1/N^2 sum_u abs(sum_(b=0)^(r-1) n_(u b) e^(2 pi i c b\/r))^2. $
   Sum over $c$. The identity
   $ sum_(c=0)^(r-1) e^(2 pi i c(b-b')\/r)
     = cases(r & "if" b=b', 0 & "if" b != b') $
   removes every cross-term between different residues. Therefore
   $ Pr[Y in G]
-    &= 1/N^2 sum_w sum_(b=0)^(r-1) sum_(b'=0)^(r-1) n_(w b) n_(w b')
+    &= 1/N^2 sum_u sum_(b=0)^(r-1) sum_(b'=0)^(r-1) n_(u b) n_(u b')
        sum_(c=0)^(r-1) e^(2 pi i c(b-b')\/r) \
-    &= r/N^2 sum_w sum_(b=0)^(r-1) n_(w b)^2. $ <eq:residue-mass>
+    &= r/N^2 sum_u sum_(b=0)^(r-1) n_(u b)^2. $ <eq:residue-mass>
 
   In words: the Fourier calculation has become an ordinary counting problem. Two entries in
   the same box always reinforce one another in this sum; different boxes do not interfere
@@ -341,24 +342,27 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
 
   *Step 2: Bound the number of occupied boxes.*
 
-  Write $A$ for the number of insertion operations and $D$ for the number of deletion
-  operations, so $A+D=k$. Tag each original entry with its original index $t$. Insertions and
-  deletions preserve the order of all surviving original entries.
+  Give every entry a _tag_ recording where it came from. An original entry's tag is its
+  original index $t >= 0$; the $j$-th insertion gets the tag $-j$. Write $tau(x)$ for the tag
+  at position $x$ of the edited sequence. Its symbol is
+  $ f_k (x) = cases(w_(tau(x) mod r) & "if" tau(x) >= 0, v(tau(x)) & "if" tau(x) < 0) $
+  where $v$ assigns the arbitrary inserted symbols. Insertions and deletions preserve the
+  order of all surviving original entries.
 
-  Consider an original entry that survives at final index $x$. Among the original $t$ entries
-  preceding it, let $d(t)$ have been deleted. Let $i(t)$ surviving inserted entries precede it
-  in the final sequence. Counting the entries before it gives
+  Consider an original entry that survives at position $x$, so that $t = tau(x) >= 0$. Among
+  the original $t$ entries preceding it, let $d(t)$ have been deleted. Let $i(t)$ surviving
+  inserted entries precede it in the final sequence. Counting the entries before it gives
   $ x = t-d(t)+i(t), quad s := x-t = i(t)-d(t). $
-  Since $0 <= i(t) <= A$ and $0 <= d(t) <= D$,
+  Since $0 <= i(t) <= I <= A$ and $0 <= d(t) <= D$,
   $ -D <= s <= A. $ <eq:shift-range>
   This interval contains only $A+D+1=k+1$ integers. Hence there are at most $k+1$ possible
   displacements, regardless of the order or locations of the edits.
 
-  An original entry of value $w_a$ has $t equiv a thick (mod r)$. Its final residue is
-  $x equiv a+s thick (mod r)$. For each of the $r$ original values, at most $k+1$ residues are
+  An original entry with symbol $w_a$ has $t equiv a thick (mod r)$. Its final residue is
+  $x equiv a+s thick (mod r)$. For each of the $r$ original symbols, at most $k+1$ residues are
   therefore possible. So retained original entries occupy at most $(k+1)r$ boxes.
   Each of the $I$ surviving inserted entries can add at most one further box. In total,
-  $ q := abs({(w,b):n_(w b)>0}) <= (k+1)r+I =: Q. $ <eq:box-count>
+  $ q := abs({(u,b):n_(u b)>0}) <= (k+1)r+I =: Q. $ <eq:box-count>
 
   This reasoning includes adjacent edits, several edits inside one period, an insertion
   subsequently deleted, and inserted symbols equal to original symbols. Reusing an existing
@@ -367,8 +371,8 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
   *Step 3: Few boxes force a large sum of squares.*
 
   Cauchy--Schwarz, applied just to the $q$ nonempty boxes, gives
-  $ N^2 = (sum_(w,b) n_(w b))^2 <= q sum_(w,b) n_(w b)^2
-    <= Q sum_(w,b) n_(w b)^2. $
+  $ N^2 = (sum_(u,b) n_(u b))^2 <= q sum_(u,b) n_(u b)^2
+    <= Q sum_(u,b) n_(u b)^2. $
   Equivalently, the sum of squares is smallest when entries are spread as evenly as possible.
   Substitute into @eq:residue-mass:
   $ Pr[Y in G] >= r/N^2 dot N^2/Q = r/((k+1)r+I). $
@@ -379,10 +383,10 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
 
   *Step 4: A second bound, ignoring inserted entries.*
 
-  Let $m_(w b)$ count only retained original entries in each box. Then
-  $0 <= m_(w b) <= n_(w b)$, their sum is $N-I$, and they occupy at most $(k+1)r$ boxes.
+  Let $m_(u b)$ count only retained original entries in each box. Then
+  $0 <= m_(u b) <= n_(u b)$, their sum is $N-I$, and they occupy at most $(k+1)r$ boxes.
   A second application of Cauchy--Schwarz yields
-  $ sum_(w,b) n_(w b)^2 >= sum_(w,b) m_(w b)^2
+  $ sum_(u,b) n_(u b)^2 >= sum_(u,b) m_(u b)^2
     >= (N-I)^2/((k+1)r). $
   This is also valid when $I=N$, when its right-hand side is zero.
   Multiplying by $r\/N^2$ in @eq:residue-mass proves @eq:retained.
@@ -391,18 +395,21 @@ boxes, and spreading $N$ entries among only a few boxes forces that sum of squar
 #block(breakable: false)[
 *Worked example: three mixed glitches.* Start with #raw("abcabcabc…"), insert #raw("d") just before
 original index $3$, insert #raw("e") just before original index $6$, and delete original index $9$.
-Keep $N=15$ entries. Here $r=3$, $k=3$, $A=2$, $D=1$, and $I=2$; all indices start at zero.
+Keep $N=15$ entries. Here $r=3$, $k=3$, $A=2$, $D=1$, and $I=2$; all positions and indices
+start at zero. In the edited sequence the three edits happen at positions $3$, $7$, and $11$,
+and the inserted entries get the tags $-1$ and $-2$.
 @fig:residue-example tracks the surviving originals and builds the count table.
 
 #figure(
   image("report_figures/general_k_example.svg", width: 100%),
   caption: [A literal three-edit example, not a block-shift approximation. Inserted entries
-    have no original index. The deletion removes original index $9$ and changes the later
-    displacement from $2$ back to $1$. The table counts each final entry exactly once.],
+    have negative tags and no displacement. The deletion removes original index $9$ and changes
+    the later displacement $s$ from $2$ back to $1$. The table counts each final entry exactly
+    once.],
 ) <fig:residue-example>
 ]
 
-The table has $sum n_(w b)=15$ and $sum n_(w b)^2=25$, so the identity gives
+The table has $sum n_(u b)=15$ and $sum n_(u b)^2=25$, so the identity gives
 $ Pr[Y in {0,5,10}] = 3/15^2 dot 25 = 1/3
   >= 3/((3+1)3+2) = 3/14 >= 1/7. $
 The middle quantity is the theorem's box-count bound; the last is its simpler universal bound.
@@ -476,8 +483,9 @@ The formal alphabet is finite, which suffices because a finite period and finite
 use only finitely many symbols. The Fourier measurement formula is taken as the definition;
 a quantum circuit implementation is not verified. Lean also covers @sec:nondividing below;
 it does not certify the other continuum results, the transfer sketch, or the open
-per-outcome and recovery claims. See #raw("formal/README.md") for the theorem-by-theorem map and
-@app:repro for commands.
+per-outcome and recovery claims. The Lean names follow this note's symbols. See
+#raw("formal/README.md") for the theorem-by-theorem map and a table matching each symbol to
+its Lean name, and @app:repro for commands.
 
 == Nondivisible periods: a constant neighbourhood bound <sec:nondividing>
 
@@ -487,50 +495,55 @@ that does not require divisibility. The following argument uses the actual liter
 prefix, not the legacy nondivisible Model I formula with $M = ceil(N\/r)$.
 
 #theorem(name: [Literal glitches without a divisibility assumption], tags: (new, proved, leanchecked))[
-  Let $2 <= r <= N$ and $k >= 1$. Start from an infinite $r$-periodic sequence, perform $k$
-  arbitrary literal insertions/deletions, and keep its first $N$ entries, obtaining $f_k$.
-  Inserted symbols are arbitrary. Let $g_c$ be any nearest integer to $c N\/r$, read modulo
+  Let $N >= 1$ and $r >= 2$. Start from an infinite $r$-periodic sequence, perform $A$
+  insertions and $D$ deletions at arbitrary positions, $k = A + D >= 1$ edits in all, and keep
+  the first $N$ entries, obtaining $f_k$. Inserted symbols are arbitrary. Let $g_c$ be any nearest integer to $c N\/r$, read modulo
   $N$, and put
-  $ G_k := {y in ZZ_N : min_(0 <= c < r) d_N(y,g_c) <= k}. $
+  $ G_k := {y in ZZ_N : min_(0 <= c < r) d_N (y,g_c) <= k}. $
   For the Fourier measurement distribution @eq:pf,
   $ Pr[Y in G_k] >= 133/358 > 1/3 >= 1/(2k+1). $ <eq:nondividing>
   This holds whether or not $r divides N$, for all edit placements and mixed signs.
-  There is no additional assumption on $k\/N$ or $k r\/N$, and overlapping windows are
-  counted only once. The constant $133\/358$ is not claimed to be sharp.
+  There is no additional assumption on $k\/N$, $k r\/N$, or $r\/N$, and overlapping windows
+  are counted only once. The constant $133\/358$ is not claimed to be sharp.
 ] <thm:nondividing>
 
 #proof[
-  *Step 1: Relate Fourier moments to equal-value pairs.*
+  *Step 1: Relate Fourier moments to equal-symbol pairs.*
 
-  Write $I <= k$ for the surviving inserted entries in the prefix. For any integer $h >= 1$,
-  define the circular matching fraction
-  $ C_h := 1/N sum_(x=0)^(N-1) bb(1)[f_k(x)=f_k((x+h) mod N)]. $
+  For any integer $h >= 1$, define the circular matching fraction
+  $ C_h := 1/N sum_(x=0)^(N-1) bb(1)[f_k (x)=f_k ((x+h) mod N)]. $
   Expanding @eq:pf and summing the $N$ roots of unity gives
   $ sum_(y=0)^(N-1) P_(f_k)(y) cos(2 pi h y\/N) = C_h. $ <eq:matching-moment>
 
-  For $h$ a multiple of $r$ with $h<N$, a non-wrapped pair $(x,x+h)$ has equal values
-  unless its interval contains a surviving inserted entry or crosses a deleted-original gap.
-  Each inserted entry lies in at most $h+1$ such intervals, including both endpoints.
-  Each deleted-original gap is crossed by at most $h$ intervals.
-  With $D$ deletion operations, there are at most $D$ such gaps and $D+I <= k$.
-  Thus at most $k h + I$ non-wrapped pairs can fail. Discarding the $h$ wrapped pairs gives
-  $ C_h >= 1 - ((k+1)h + I)/N. $ <eq:matching-bound>
-  For $h >= N$ the right-hand side is nonpositive, so the same inequality is automatic.
+  Use the tags $tau$ from Step 2 of @sec:total. Call $x$ a _good start_ for the lag $h$ if
+  positions $x$ and $x+h$ both hold original entries whose tags differ by exactly $h$, that is,
+  $tau(x) >= 0$ and $tau(x+h) = tau(x)+h$. When $r divides h$ the two tags are congruent
+  modulo $r$, so a good start has $f_k (x) = f_k (x+h)$.
+
+  For every length $L$, at most $k h + A$ of the starts $x < L$ are not good. This follows by
+  induction on the edit history. In the unedited sequence every start is good. An insertion
+  destroys at most $h$ good pairs, those that straddle it, and adds one start. A deletion
+  destroys at most $h+1$ good pairs, those that contain or straddle the deleted entry, and
+  removes one start. So each insertion adds at most $h+1$ starts that are not good, each
+  deletion at most $h$, and $A(h+1) + D h = k h + A$.
+
+  Take $L = N-h$, so that no pair wraps around, and count the $h$ wrapped starts as failures.
+  For every multiple $h$ of $r$ this gives
+  $ C_h >= 1 - ((k+1)h + A)/N. $ <eq:matching-bound>
+  For $h >= N$ the right-hand side is nonpositive, so the inequality is automatic.
 
   *Step 2: Separate the rounded good windows from their complement.*
 
-  If $N <= (2k+1)r$, the rounded windows cover every integer outcome. Indeed, an integer
-  is within $N\/(2r)$ of some real peak and within $N\/(2r)+1\/2$ of its rounded peak.
-  When $N<(2k+1)r$ this integer distance is strictly less than $k+1$, hence at most $k$.
-  At equality the peaks themselves are integers spaced $2k+1$ apart, which also covers
-  all outcomes. Thus this case is immediate. Otherwise put
-  $ t := (2N)/(r(2k+1)) > 2, quad p := Pr[Y in G_k], quad
+  If $N < (2k+1)r$, the rounded windows cover every integer outcome. Indeed, an integer
+  is within $N\/(2r)$ of some real peak and within $N\/(2r)+1\/2 < k+1$ of its rounded
+  peak, hence within $k$. Thus this case is immediate. Otherwise $N >= (2k+1)r$; put
+  $ t := (2N)/(r(2k+1)) >= 2, quad p := Pr[Y in G_k], quad
     theta_y := min_(m in ZZ) abs(r y\/N - m) in [0,1/2]. $
   If $y$ is outside $G_k$, then its integer distance from every $g_c$ is at least $k+1$.
-  Since $d_N(g_c,c N\/r) <= 1\/2$, its distance from every real peak is at least $k+1\/2$.
+  Since $d_N (g_c,c N\/r) <= 1\/2$, its distance from every real peak is at least $k+1\/2$.
   Consequently $theta_y >= 1\/t$.
 
-  For every integer $ell >= 1$, @eq:matching-bound, $r>=2$, and $I<=k$ imply
+  For every integer $ell >= 1$, @eq:matching-bound, $r>=2$, and $A<=k$ imply
   $ C_(ell r) >= 1 - (2(k+1)ell + k)/((2k+1)t)
     >= 1 - (4ell+1)/(3t). $ <eq:normalised-matching>
   The last inequality is equivalent to $(k-1)(2ell-1) >= 0$.
@@ -538,10 +551,10 @@ prefix, not the legacy nondivisible Model I formula with $M = ceil(N\/r)$.
   *Step 3: Average a nonnegative Fourier kernel.*
 
   For an integer $T>=2$, the Fejér kernel is
-  $ F_T(theta) := 1/T abs(sum_(j=0)^(T-1) e^(2 pi i j theta))^2
+  $ F_T (theta) := 1/T abs(sum_(j=0)^(T-1) e^(2 pi i j theta))^2
     = 1 + 2 sum_(ell=1)^(T-1) (1-ell\/T) cos(2 pi ell theta). $
   It satisfies $0 <= F_T <= T$. From @eq:matching-moment and @eq:normalised-matching,
-  $ E_T := sum_y P_(f_k)(y) F_T(r y\/N), quad
+  $ E_T := sum_y P_(f_k)(y) F_T (r y\/N), quad
     E_T/T >= 1 - (4(T^2-1))/(9t T) - (T-1)/(3t T). $ <eq:fejer-expectation>
   Here $sum_(ell=1)^(T-1) ell(1-ell\/T)=(T^2-1)\/6$ and
   $sum_(ell=1)^(T-1)(1-ell\/T)=(T-1)\/2$.
@@ -551,18 +564,18 @@ prefix, not the legacy nondivisible Model I formula with $M = ceil(N\/r)$.
 
   *Step 4: Choose the kernel size, using two elementary estimates.*
 
-  If $2<t<=6$, take $T=2$. Then $F_2(theta)\/2=cos^2(pi theta)$, so we may take
+  *Short kernel, $2<=t<=6$.* Take $T=2$. Then $F_2 (theta)\/2=cos^2(pi theta)$, so we may take
   $q=cos^2(pi\/t)$. @eq:fejer-expectation gives $E_2\/2 >= 1-5\/(6t)$, hence
   $ p >= 1 - 5/(6t sin^2(pi\/t)) >= 3/8. $
   To check the last step, $t sin^2(pi\/t)>=4\/3$ throughout this range:
-  for $2<t<=3$ use $sin^2(pi\/t)>=3\/4$; for $3<=t<=4$ use
+  for $2<=t<=3$ use $sin^2(pi\/t)>=3\/4$; for $3<=t<=4$ use
   $sin^2(pi\/t)>=1\/2$; for $4<=t<=6$, concavity of sine on $[0,pi\/4]$ gives
   $sin(pi\/t)>=2 sqrt(2)\/t$, so $t sin^2(pi\/t)>=8\/t>=4\/3$.
 
-  If $t>=6$, take $T=ceil(3t\/4)$. Using $T<=3t\/4+1$ in @eq:fejer-expectation gives
+  *Long kernel, $t>6$.* Take $T=ceil(3t\/4)$. Using $T<=3t\/4+1$ in @eq:fejer-expectation gives
   $ E_T/T >= 2/3 - 7/(9t) >= 29/54. $
   Outside $G_k$, the geometric-sum formula gives
-  $ F_T(theta_y)/T <= 1/(T^2 sin^2(pi theta_y))
+  $ F_T (theta_y)\/T <= 1/(T^2 sin^2(pi theta_y))
     <= 1/(T^2 sin^2(pi\/t)) <= 64/243. $
   Indeed, concavity of sine on $[0,pi\/3]$ gives
   $sin(pi\/t)>=(3 sqrt(3)\/2)\/t$, and $T>=3t\/4$.
@@ -586,10 +599,9 @@ prefix, not the legacy nondivisible Model I formula with $M = ceil(N\/r)$.
   choice is allowed, and overlapping windows are counted as a set. The axiom audit uses
   only Lean's standard logical foundations, with no placeholders or added axioms.
 
-  The formal pair-count induction uses all insertion operations $A$ in place of the sharper
-  surviving-prefix count $I$; $A<=k$ gives the same normalized estimate and final constant.
-  It includes $t=2$ in the short-kernel regime. Deterministic numerical checks remain in
-  #raw("glitchy.py check"). See #raw("formal/README.md") for the declaration map.
+  The Lean proof follows Steps 1--4 above with the same symbols: the good-start induction, the
+  coverage case $N<(2k+1)r$, and the short and long kernels. Deterministic numerical checks
+  remain in #raw("glitchy.py check"). See #raw("formal/README.md") for the declaration map.
 ]
 
 == Continuum limit

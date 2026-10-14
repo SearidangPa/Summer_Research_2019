@@ -22,7 +22,8 @@ Usage (uv installs numpy and matplotlib automatically):
     uv run glitchy.py plot  --N 3000 --r 50 --blocks 6 54      # given placement
     uv run glitchy.py worst --N 3000 --r 50 --k 2              # exhaustive worst case
     uv run glitchy.py worst --N 1500 --r 50 --k 4 --samples 2000
-    uv run glitchy.py check                                    # every number in glitchy_period_finding_report.pdf
+    uv run glitchy.py recover --N 3001 --r 50 --k 3 --samples 100  # chance of recovering r
+    uv run glitchy.py check                                   # every number in glitchy_period_finding_report.pdf
 """
 import argparse
 import itertools
@@ -124,6 +125,90 @@ def continuum_coeffs(u, signs, alpha, radius):
 def continuum_ratio(u, signs, alpha, radius):
     """Probability within `radius` of the good outcome alpha = c/r, relative to ideal."""
     return float(np.sum(np.abs(continuum_coeffs(u, signs, alpha, radius)) ** 2))
+
+
+# ---------------------------------------------------------------------------
+# Period recovery on literal prefixes (the Section 5 proposal)
+# ---------------------------------------------------------------------------
+def literal_prefix(N, r, positions, signs):
+    """Apply edits in order to the tagged sequence 0, 1, 2, ... and return N symbols.
+
+    An insertion at `pos` puts a new symbol r + j before the current entry `pos`;
+    a deletion removes the current entry `pos`.  Original tag t has symbol t mod r.
+    """
+    sequence = list(range(N + len(signs)))
+    for j, (pos, sign) in enumerate(zip(positions, signs)):
+        if sign > 0:
+            sequence.insert(pos, -(r + j) - 1)
+        else:
+            sequence.pop(pos)
+    tags = np.array(sequence[:N])
+    return np.where(tags >= 0, tags % r, -tags - 1)
+
+
+def literal_probability(entries):
+    """Exact Fourier measurement distribution of a finite symbol sequence."""
+    _, inverse = np.unique(entries, return_inverse=True)
+    classes = inverse[None, :] == np.arange(inverse.max() + 1)[:, None]
+    return (np.abs(np.fft.fft(classes, axis=1)) ** 2).sum(0) / len(entries) ** 2
+
+
+def convergent_denominators(a, N, limit):
+    """Denominators q <= limit of the continued-fraction convergents of a/N."""
+    qs, (q_prev, q), (num, den) = [], (1, 0), (a, N)
+    while den:
+        t, num, den = num // den, den, num % den
+        q_prev, q = q, t * q + q_prev
+        if q > limit:
+            break
+        qs.append(q)
+    return qs
+
+
+def recovery(N, r, entries, radius, tau):
+    """Exact success probability of one run of the Section 5 procedure.
+
+    Measure y; collect convergent denominators q <= sqrt(N) of y'/N for |y' - y| <= radius;
+    output the smallest q whose shift test f(x) = f(x+q) passes on more than a 1 - tau
+    fraction of the prefix.  Returns (mass within radius of any peak, mass within radius
+    of an informative peak gcd(c, r) = 1, probability that the output is r).
+    """
+    probability = literal_probability(entries)
+    good = good_outcomes(N, r)
+    offsets = np.arange(-radius, radius + 1)
+    informative = [c for c in range(r) if math.gcd(c, r) == 1]
+    near = np.unique((good[:, None] + offsets) % N)
+    near_informative = np.unique((good[informative][:, None] + offsets) % N)
+
+    limit = math.isqrt(N)
+    candidates = [convergent_denominators(y, N, limit) for y in range(N)]
+    passes = {q: np.mean(entries[:-q] == entries[q:]) > 1 - tau for q in range(1, limit + 1)}
+    success = 0.0
+    for y in range(N):
+        qs = sorted({q for h in offsets for q in candidates[(y + h) % N]})
+        if next((q for q in qs if passes[q]), None) == r:
+            success += probability[y]
+    return float(probability[near].sum()), float(probability[near_informative].sum()), float(success)
+
+
+def recovery_report(N, r, placements, radius, tau):
+    """Print recovery numbers for each placement [(positions, signs), ...] and a summary."""
+    phi = sum(math.gcd(c, r) == 1 for c in range(r))
+    _, _, ideal = recovery(N, r, literal_prefix(N, r, [], []), radius, tau)
+    print(f"no edits: success {ideal:.4f};  phi(r)/r = {phi / r:.4f};  "
+          f"conjectured floor (1/2) phi(r)/r = {phi / (2 * r):.4f}")
+    rows = [(*recovery(N, r, literal_prefix(N, r, pos, signs), radius, tau), pos, signs)
+            for pos, signs in placements]
+    for mass, informative, success, pos, signs in rows[:20]:
+        sign_text = "".join("+" if s > 0 else "-" for s in signs)
+        print(f"  edits {sign_text} at {pos}: window mass {mass:.4f}, informative {informative:.4f}, "
+              f"success {success:.4f}")
+    if len(rows) > 1:
+        worst = min(rows, key=lambda row: row[2])
+        print(f"{len(rows)} placements: success min {worst[2]:.4f} (at {worst[3]}), "
+              f"mean {np.mean([row[2] for row in rows]):.4f}; "
+              f"window mass min {min(row[0] for row in rows):.4f}")
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -426,6 +511,66 @@ def check_nondividing_glitches():
     print(f"No edits, N=5 r=2: mass at rounded peaks {mass:.6f} < 1 (expected leakage).")
 
 
+def check_recovery():
+    """Exact success probabilities of the Section 5 procedure.
+
+    The placements are the worst found by a local search over positions and signs
+    (for k = 1, every third position with both signs). They are not proved worst cases.
+    """
+    from fractions import Fraction
+
+    for N in [7, 12, 100, 360]:
+        for a in range(N):
+            x, terms = Fraction(a, N), []
+            while True:
+                terms.append(math.floor(x))
+                if x == terms[-1]:
+                    break
+                x = 1 / (x - terms[-1])
+            denominators = []
+            for i in range(1, len(terms) + 1):
+                f = Fraction(terms[i - 1])
+                for t in reversed(terms[:i - 1]):
+                    f = t + 1 / f
+                denominators.append(f.denominator)
+            expected = list(itertools.takewhile(lambda q: q <= math.isqrt(N), denominators))
+            assert convergent_denominators(a, N, math.isqrt(N)) == expected
+    print("Continued-fraction denominators agree with exact Fraction expansions.")
+
+    # Without edits and with r | N, exactly the outcomes cN/r with gcd(c, r) = 1 succeed.
+    for N, r in [(360, 12), (3000, 50)]:
+        phi = sum(math.gcd(c, r) == 1 for c in range(r))
+        assert abs(recovery(N, r, literal_prefix(N, r, [], []), 0, 0.25)[2] - phi / r) < 1e-12
+    print("No edits, r | N, radius 0: success = phi(r)/r exactly.")
+
+    for N, r, positions, signs in [
+        (3000, 50, [2448], [1]),
+        (3000, 50, [250, 2750], [-1, -1]),
+        (3000, 50, [299, 600, 900], [1, -1, 1]),
+        (3000, 50, [107, 308, 558, 2808], [1, 1, -1, 1]),
+        (3001, 50, [501], [-1]),
+        (3001, 50, [350, 2650], [1, 1]),
+        (3001, 50, [600, 300, 850], [1, -1, -1]),
+        (3001, 50, [203, 452, 700, 2752], [-1, 1, -1, 1]),
+        (2500, 47, [471], [-1]),
+        (2500, 47, [328, 610], [-1, 1]),
+        (2500, 47, [282, 518, 753], [1, -1, 1]),
+        (2500, 47, [1677, 1866, 2288, 2100], [1, -1, -1, 1]),
+    ]:
+        k = len(signs)
+        phi = sum(math.gcd(c, r) == 1 for c in range(r))
+        entries = literal_prefix(N, r, positions, signs)
+        ideal = recovery(N, r, literal_prefix(N, r, [], []), k, 0.25)[2]
+        mass, _, success = recovery(N, r, entries, k, 0.25)
+        assert mass >= 133 / 358 - 1e-12
+        assert success >= phi / (2 * r)
+        for tau in [0.05, 0.5]:
+            assert abs(recovery(N, r, entries, k, tau)[2] - success) < 1e-12
+        sign_text = "".join("+" if s > 0 else "-" for s in signs)
+        print(f"N={N} r={r} k={k} {sign_text} at {positions}: success {success:.4f}, "
+              f"no edits {ideal:.4f}, ratio {success / ideal:.3f}  (phi(r)/r = {phi / r:.4f})")
+
+
 def check():
     def section(title):
         print(f"\n== {title}")
@@ -486,6 +631,9 @@ def check():
     section("Nondividing periods: matching moments, Fejer kernel and constant neighbourhood mass")
     check_nondividing_glitches()
 
+    section("Section 5: exact success probability of the recovery procedure (numerical evidence only)")
+    check_recovery()
+
 
 # ---------------------------------------------------------------------------
 # Command line
@@ -513,6 +661,13 @@ def main():
     q.add_argument("--samples", type=int, help="random placements instead of all of them")
     q.add_argument("--top", type=int, default=10)
 
+    q = sub.add_parser("recover", help="exact success probability of the Section 5 recovery procedure")
+    common(q)
+    q.add_argument("--positions", type=int, nargs="+",
+                   help="literal edit positions, applied in order (default: random)")
+    q.add_argument("--samples", type=int, default=1, help="random placements to evaluate")
+    q.add_argument("--tau", type=float, default=0.25, help="shift test passes above 1 - tau")
+
     sub.add_parser("check", help="reproduce every number in glitchy_period_finding_report.pdf")
 
     a = p.parse_args()
@@ -522,6 +677,8 @@ def main():
     M = math.ceil(a.N / a.r)
     if a.cmd == "plot" and a.blocks:
         a.k = len(a.blocks)
+    if a.cmd == "recover" and a.positions:
+        a.k = len(a.positions)
     signs = a.signs * a.k if len(a.signs) == 1 else a.signs
     if len(signs) != a.k:
         p.error(f"--signs needs 1 or {a.k} values")
@@ -530,6 +687,13 @@ def main():
     if a.cmd == "plot":
         blocks = a.blocks or sorted(np.random.default_rng(a.seed).choice(np.arange(1, M), a.k, replace=False).tolist())
         plot(a.N, a.r, blocks, signs, radius, a.out)
+    elif a.cmd == "recover":
+        if a.r * a.r > a.N:
+            p.error("continued fractions need r^2 <= N")
+        rng = np.random.default_rng(a.seed)
+        placements = ([(a.positions, signs)] if a.positions else
+                      [(rng.integers(a.N, size=a.k).tolist(), signs) for _ in range(a.samples)])
+        recovery_report(a.N, a.r, placements, radius, a.tau)
     else:
         res = worst_case_search(a.N, a.r, a.k, signs, radius, a.samples, a.seed)
         print(f"{len(res)} placements of {a.k} glitches in {M} copies; worst ratio within {radius}:")

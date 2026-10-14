@@ -36,6 +36,36 @@ lake env lean Audit.lean
 
 This workaround changes only cache retrieval, not the proofs or checking kernel.
 
+## Notation: report and Lean
+
+The Lean names use the report's letters, so the two can be read side by side. Docstrings
+cite the report's equations by their source labels, for example "Eq. (matching-bound)".
+
+| Report | Lean | Meaning |
+|---|---|---|
+| `N`, `r`, `k` | `N`, `r`, `A + D` | prefix length, period, number of edits |
+| `A`, `D` | `A`, `D` in `Edited A D τ` | insertions, deletions |
+| `τ(x)` | `τ x` | tag at position `x`: original index `t ≥ 0`, or `-j` for the `j`-th insertion |
+| `w_0, ..., w_(r-1)` | `w : ZMod r → W` | periodic symbols (need not be distinct) |
+| `v` | `v : ℤ → W` | inserted symbols, indexed by their negative tags |
+| `f_k(x)` | `symbol w v (τ x)`; `literalCycle τ w v` on `ZMod N` | edited prefix |
+| `I` | `(inserteds τ N).card` | surviving inserted entries, `I ≤ A` |
+| `s = x - t` | `x - τ x` in `Edited.displacement` | displacement of an original entry |
+| `u`, `b`, box `(u, b)` | `u : W`, `b : ZMod r`, `box τ w v x` | output symbol, residue, box |
+| `n_(u b)`, `m_(u b)` | `prefixCounts τ w v N u b`, `m` | all / retained-original box counts |
+| `q`, `Q` (Step 2) | card of the support, `Q` | occupied boxes and their bound |
+| `P_f(y)` | `fourierProbability f y`, `cyclicProbability f y` | Eq. (pf), indexed by `ℕ` / `ZMod N` |
+| `G`, `G_k` (§4.1) | `goodOutcomes N r`, any `H ⊇ G` | ideal outcomes, a neighbourhood |
+| `ℓ_j`, `s_j`, `p_b` (Model I) | `length j`, `shift j`, `grouped shift length b` | blocks `0..k` in Lean, `1..k+1` in the report |
+| `h`, `C_h` | `h`, `matchingFraction f h` | lag, circular matching fraction |
+| good start `x` | `x ∈ goodPairs τ h L` | `τ x ≥ 0` and `τ (x+h) = τ x + h` |
+| `g_c`, `G_k` (§4.2) | `g c` with `NearestPeaks g`, `roundedWindows g k` | rounded peaks, their radius-`k` windows |
+| `d_N(y, g) = min_m abs(y - g - m N)` | `∃ m : ℤ, abs(y - g - m*N) ≤ k` | circular distance |
+| `t`, `p`, `θ_y` | `t`, `p`, `phaseDistance (r*y)` | scale `2N/(r(2k+1))`, window mass, phase distance |
+| `T`, `F_T`, `E_T` | `T`, `fejerSquare T / T = F_T`, `E` | kernel size, Fejér kernel, expectation `E_T/T` |
+| `q` (Step 3) | `q` | bound on `F_T/T` outside `G_k` |
+| `i` (imaginary unit) | `Complex.I` | written in full; `I` always means surviving insertions |
+
 ## What is proved
 
 All theorem names below are in the `Glitchy` namespace.
@@ -61,7 +91,7 @@ All theorem names below are in the `Glitchy` namespace.
 ### Reading the main theorem
 
 `general_k_sharp_bounds` uses `A` insertions and `D` deletions rather than a
-separate `k`; set `k = A + D`. For any history `h : Edited A D s`, any symbol
+separate `k`; set `k = A + D`. For any history `h : Edited A D τ`, any symbol
 assignments, positive `N`, and positive `r` dividing `N`, it proves both
 
 - total Fourier mass on the **set** of exact ideal outcomes at least
@@ -76,7 +106,7 @@ superset of the exact ideal outcomes; overlapping neighbourhoods are harmless.
 
 ### Reading the nondivisible theorem
 
-`general_k_nondividing` takes an actual history `h : Edited A D s`, arbitrary
+`general_k_nondividing` takes an actual history `hedit : Edited A D τ`, arbitrary
 periodic and inserted symbol assignments, `N > 0`, `r >= 2`, and `A+D >= 1`.
 For **any** choice `g` of nearest integers to `cN/r`, it proves
 
@@ -92,23 +122,21 @@ needs no rounding hypothesis. The theorem covers either choice at every tie.
 and is a finite **set** of outcomes, so overlaps are not double-counted.
 
 There is no divisibility, sample-size, small-edit, or distinct-symbol hypothesis.
-The formal theorem even allows `r > N`, when the windows cover everything.
+As in the report, `r > N` is allowed; the windows then cover everything.
 `general_k_nondividing_universal` recovers the original `1/(2k+1)` bound.
 
-Two harmless implementation differences from the written proof:
-
-- The pair-count induction proves `C_h >= 1-((k+1)h+A)/N`, using all insertion
-  operations `A`, rather than the sharper surviving-prefix count `I`. Since
-  `A <= k`, this gives the same normalized matching bound and final constant.
-- The short-kernel estimate includes `t=2`. Strict full coverage handles
-  `N < (2k+1)r`; the analytic argument handles equality as well as larger `N`.
+The proof follows the report step by step. `Edited.goodPairs_bound` is the
+good-pairs induction of Step 1, giving `C_h >= 1-((k+1)h+A)/N`.
+`roundedWindows_full_of_lt` is the coverage case `N < (2k+1)r` of Step 2; otherwise
+`t >= 2`. `fejer_mass_of_matching` uses the short kernel `T = 2` for `2 <= t <= 6`
+and the long kernel `T = ceil(3t/4)` for `t > 6`.
 
 No matching estimate, Fourier identity, Fejér expansion, kernel envelope, or
 expectation bound is an extra hypothesis of the final theorem.
 
 ### How literal edits are represented
 
-An unedited sequence has tags `s x = x`. Original tags are nonnegative.
+An unedited sequence has tags `τ x = x`. Original tags are nonnegative.
 Insertion number `A` gets a fresh tag `-(A+1)`; deleting it simply removes that
 tag. `insertAt` and `deleteAt` shift the rest of an infinite sequence exactly
 as their names suggest.

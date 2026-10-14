@@ -10,14 +10,14 @@ from pathlib import Path
 
 N, r, k = 15, 3, 3
 sequence = [(t, "abc"[t % r]) for t in range(N + k)]
-sequence.insert(3, (None, "d"))
-sequence.insert(7, (None, "e"))
+sequence.insert(3, (-1, "d"))  # the j-th insertion gets tag -j
+sequence.insert(7, (-2, "e"))
 assert sequence.pop(11) == (9, "a")
 sequence = sequence[:N]
-counts = Counter((value, x % r) for x, (_, value) in enumerate(sequence))
+counts = Counter((symbol, x % r) for x, (_, symbol) in enumerate(sequence))
 squares = sum(n * n for n in counts.values())
 assert squares == 25 and Fraction(r * squares, N * N) == Fraction(1, 3)
-assert sum(t is None for t, _ in sequence) == 2
+assert sum(t < 0 for t, _ in sequence) == 2
 
 parts = ['<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="690" viewBox="0 0 1000 690">',
          '<title>Three literal glitches: from original indices to residue counts</title>',
@@ -41,38 +41,38 @@ def text(x, y, content, size=18, color=ink, bold=False, anchor="start"):
 
 text(24, 30, "1. Follow the original entries", 23, blue, True)
 text(24, 57, "r = 3, N = 15, k = 3.  Insert d before original 3; insert e before original 6; delete original 9.", 17)
-labels = [("Final index x", 99), ("Output value", 138), ("Original index t", 177), ("Shift x - t", 216)]
+labels = [("Position x", 99), ("Symbol", 138), ("Tag τ(x)", 177), ("s = x − τ(x)", 216)]
 for label, y in labels:
     text(24, y, label, 17)
 palette = {0: "#e6eff8", 1: "#e4f2e9", 2: "#fff1d6", None: "#f0e7f8"}
-for x, (t, value) in enumerate(sequence):
+for x, (t, symbol) in enumerate(sequence):
     left, width = 194 + x * 51, 46
-    shift = None if t is None else x - t
+    shift = None if t < 0 else x - t
     rect(left, 76, width, 151, palette[shift], radius=4)
-    for entry, (_, y) in zip([x, value, "—" if t is None else t,
-                              "ins." if t is None else shift], labels):
+    for entry, (_, y) in zip([x, symbol, f"−{-t}" if t < 0 else t,
+                              "—" if t < 0 else shift], labels):
         text(left + width / 2, y, entry, 19, anchor="middle", bold=(y == 138))
-text(194, 253, "Same shift may recur: the deletion brings the final block from shift 2 back to shift 1.", 17, muted)
+text(194, 253, "The same displacement may recur: the deletion brings the last block from 2 back to 1.", 17, muted)
 rect(24, 273, 952, 1, "#dbe3eb")
 
-text(24, 308, "2. Put entries into (value, residue) boxes", 22, blue, True)
+text(24, 308, "2. Put entries into (symbol, residue) boxes", 22, blue, True)
 text(24, 335, "Each column collects positions with the same x mod 3.", 17, muted)
 left, top, cw, ch = 123, 379, 75, 44
-text(42, 367, "value", 16, muted)
+text(36, 367, "symbol u", 16, muted)
 for b in range(r):
     text(left + b * cw + cw / 2, 367, f"b = {b}", 17, anchor="middle", bold=True)
-for row, value in enumerate("abcde"):
-    text(65, top + row * ch + 29, value, 20, bold=True, anchor="middle")
+for row, symbol in enumerate("abcde"):
+    text(65, top + row * ch + 29, symbol, 20, bold=True, anchor="middle")
     for b in range(r):
-        n = counts[value, b]
+        n = counts[symbol, b]
         fill = ["#fafbfd", "#e5eef7", "#c4d9ed", "#94b9dc"][n]
-        if value in "de" and n:
+        if symbol in "de" and n:
             fill = "#eadbf5"
         rect(left + b * cw, top + row * ch, cw - 3, ch - 3, fill, "#d4dde6", 3)
         text(left + b * cw + (cw - 3) / 2, top + row * ch + 28, n, 20,
              color=muted if not n else ink, anchor="middle")
 text(24, 628, "Total entries: 15.   Sum of squared counts: 25.", 17, bold=True)
-text(24, 653, "d and e are inserted values; each adds one box.", 17, muted)
+text(24, 653, "d and e are inserted symbols; each adds one box.", 17, muted)
 
 rect(397, 353, 579, 305, "#f3f7fb", radius=8)
 text(420, 388, "3. Read off the exact Fourier mass", 22, blue, True)

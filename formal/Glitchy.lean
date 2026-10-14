@@ -38,6 +38,10 @@ Section 4.2 continues with:
 Each Lean idea is explained in detail the first time it appears in this order and
 more briefly after that.
 
+The Lean names follow the report's notation (tags `τ`, symbols `u`, counts `n u b`, `A`, `D`,
+`I`, `C_h`, `t`, `T`, ...). `README.md` has a table matching each report symbol to its Lean name,
+and docstrings cite the report's equations by label, e.g. "Eq. (matching-bound)".
+
 ## How to explore interactively (Neovim)
 
 Install the lean.nvim plugin (https://github.com/Julian/lean.nvim). It starts Lean's
@@ -94,7 +98,7 @@ By convention, hypothesis names start with `h` (`hN`, `hrN`, `hsum`, ...).
 ## Notation used throughout
 
 * `ℕ` (naturals, includes 0), `ℤ`, `ℝ`, `ℂ`. `ℕ → ℤ` is the type of functions from ℕ to ℤ,
-  so an infinite sequence of integers is a function `s : ℕ → ℤ`.
+  so an infinite sequence of integers is a function `τ : ℕ → ℤ`.
 * `fun x => e` is the function x ↦ e. Application is juxtaposition: `f x`, `f x y`.
 * `(x : ℤ)` for `x : ℕ` casts x into ℤ; Lean displays such a cast as `↑x`.
 * `Fin N` is {0, 1, ..., N-1}; for `x : Fin N`, `x.val` is the underlying natural number.

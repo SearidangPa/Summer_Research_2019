@@ -2,6 +2,9 @@ import Glitchy.Literal
 
 -- Model I: a simpler model in which the sequence consists of k+1 blocks. Block j has relative
 -- length `length j` (the lengths add up to 1) and is shifted by `shift j` ∈ ZMod r.
+-- In the report (Proposition "General glitches in normalized Model I") these are ℓ_j and s_j,
+-- and `grouped shift length b` is p_b. The report numbers blocks 1, ..., k+1; Lean uses
+-- `Fin (k + 1)` = {0, ..., k}.
 -- Results:
 --   * the ideal-outcome mass equals ∑_b (total length of the blocks with shift b)²
 --     (`modelMass_eq`);
@@ -17,12 +20,12 @@ open Finset Complex
 -- `Fin (k + 1)` = {0, ..., k}, the block indices.
 variable {r k : ℕ} [NeZero r]
 
-/-- The total length of the blocks whose shift is `b`. -/
+/-- The total length of the blocks whose shift is `b`: the report's `p_b`. -/
 noncomputable def grouped (shift : Fin (k + 1) → ZMod r)
     (length : Fin (k + 1) → ℝ) (b : ZMod r) : ℝ :=
   ∑ j ∈ univ.filter (fun j => shift j = b), length j
 
-/-- Model I's probability on the exact ideal outcomes:
+/-- Model I's probability on the exact ideal outcomes, `Pr_{Model I}[Y ∈ G]`:
 `(1/r) · ∑_c |∑_j length j · e(c · shift j)|²`. -/
 noncomputable def modelMass (shift : Fin (k + 1) → ZMod r)
     (length : Fin (k + 1) → ℝ) : ℝ :=

@@ -10,12 +10,14 @@ open Finset Complex
 
 variable {N : ℕ} [NeZero N] {W : Type*} [Fintype W] [DecidableEq W]
 
-/-- The QFT probability, with both positions and outcomes indexed by `ZMod N`. -/
+/-- The QFT probability `P_f(y)` of the report's Eq. (pf), with both positions and outcomes
+indexed by `ZMod N`. -/
 noncomputable def cyclicProbability (f : ZMod N → W) (y : ZMod N) : ℝ :=
-  (1 / (N : ℝ)^2) * ∑ a : W,
-    normSq (∑ x : ZMod N, if f x = a then ZMod.stdAddChar (y * x) else 0)
+  (1 / (N : ℝ)^2) * ∑ u : W,
+    normSq (∑ x : ZMod N, if f x = u then ZMod.stdAddChar (y * x) else 0)
 
-/-- Fraction of positions whose symbol agrees with its circular translate. -/
+/-- The report's circular matching fraction `C_h` (Section 4.2, Step 1): the fraction of
+positions whose symbol agrees with its circular translate by `h`. -/
 noncomputable def matchingFraction (f : ZMod N → W) (h : ZMod N) : ℝ :=
   (1 / (N : ℝ)) * ∑ x : ZMod N, if f x = f (x + h) then (1 : ℝ) else 0
 
@@ -45,7 +47,8 @@ theorem cyclicProbability_expand (f : ZMod N → W) (y : ZMod N) :
       show -(y * x) + y * z = y * (z - x) by ring]
   · simp [hf]
 
-/-- Complex Fourier moment equals the real matching fraction. -/
+/-- Complex Fourier moment equals the real matching fraction
+(the report's Eq. (matching-moment) before taking real parts). -/
 theorem cyclic_matching_moment (f : ZMod N → W) (h : ZMod N) :
     (∑ y : ZMod N, (cyclicProbability f y : ℂ) * ZMod.stdAddChar (y * h)) =
       (matchingFraction f h : ℂ) := by
@@ -119,18 +122,19 @@ theorem cyclicProbability_eq_fourier (f : Fin N → W) (y : ZMod N) :
   unfold cyclicProbability fourierProbability
   congr 1
   apply sum_congr rfl
-  intro a _
+  intro u _
   congr 1
   rw [← Equiv.sum_comp (ZMod.finEquiv N).toEquiv]
   apply sum_congr rfl
   intro x _
-  change (if f ((ZMod.finEquiv N).symm (ZMod.finEquiv N x)) = a
+  change (if f ((ZMod.finEquiv N).symm (ZMod.finEquiv N x)) = u
     then ZMod.stdAddChar (y * (ZMod.finEquiv N x)) else 0) = _
   rw [RingEquiv.symm_apply_apply, finEquiv_eq_natCast]
   have hp := ideal_phase N (NeZero.pos N) (dvd_refl N) x y
-  simpa using congrArg (fun z : ℂ => if f x = a then z else 0) hp
+  simpa using congrArg (fun z : ℂ => if f x = u then z else 0) hp
 
-/-- Real-part form of the matching identity, used by the Fejér argument. -/
+/-- Real-part form of the matching identity, the report's Eq. (matching-moment):
+`∑_y P(y) cos(2π h y/N) = C_h`. Used by the Fejér argument. -/
 theorem cyclic_matching_moment_re (f : ZMod N → W) (h : ZMod N) :
     (∑ y : ZMod N, cyclicProbability f y * (ZMod.stdAddChar (y * h)).re) =
       matchingFraction f h := by

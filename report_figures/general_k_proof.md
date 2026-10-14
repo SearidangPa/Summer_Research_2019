@@ -1,6 +1,6 @@
 # General-k total-mass proof map
 
-A **box** is a pair (output value, input residue modulo r). The diagram proves a
+A **box** is a pair (u, b): output symbol u and input residue b modulo r. The diagram proves a
 bound on the **sum over all ideal outcomes**, not on each outcome separately.
 
 ```mermaid
